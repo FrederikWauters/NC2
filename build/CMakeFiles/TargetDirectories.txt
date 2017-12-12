@@ -1,0 +1,2 @@
+/home/frederik/geant4/user/NC2/build/CMakeFiles/NC2.dir
+/home/frederik/geant4/user/NC2/build/CMakeFiles/NC_2.dir
