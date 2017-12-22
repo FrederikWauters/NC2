@@ -87,7 +87,7 @@ void NC2PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   
   //Generate random direction
   G4double cosTheta = (cosThetaHigh-cosThetaLow)*G4UniformRand()+cosThetaLow;
-  G4double phi       = 2*M_PI*G4UniformRand();
+  G4double phi      = 2*M_PI*G4UniformRand();
   G4double sinTheta = std::sqrt(1. - cosTheta*cosTheta);
   
   G4double px = cos(phi)*sinTheta ;
@@ -153,7 +153,7 @@ G4double NC2PrimaryGeneratorAction::GetEnergy()
   {
     G4int trial_a = int(trunc(G4UniformRand()*entries)); //random integer number between 0 and entries -1
     //G4cout << "trial_a " << trial_a << G4endl;
-    if(gammas.at(trial_a).use = true)
+    if(gammas.at(trial_a).use == true)
     {
       G4double trial_b = G4UniformRand();
       if(gammas.at(trial_a).intensity > trial_b)

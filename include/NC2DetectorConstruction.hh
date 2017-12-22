@@ -31,8 +31,11 @@
 #ifndef NC2DetectorConstruction_h
 #define NC2DetectorConstruction_h 1
 
+#include <vector>
+
 #include "G4VUserDetectorConstruction.hh"
 #include "globals.hh"
+#include "GeDetector.hh"
 
 class G4VPhysicalVolume;
 class G4LogicalVolume;
@@ -46,72 +49,23 @@ class NC2DetectorConstruction : public G4VUserDetectorConstruction
     virtual ~NC2DetectorConstruction();
 
     virtual G4VPhysicalVolume* Construct();
-
-    
-    G4LogicalVolume* GetScoringVolume() const { return fScoringVolume; }
     
     void Print();
 
   protected:
-    G4LogicalVolume*  fScoringVolume;
     
-    //
-    //Parameters
-    //
+    //world
     G4double world_sizeXY;
     G4double world_sizeZ;
     G4double delta;
     
-    G4double detectorDistance;
-    
-    //Ge detector 1
-    G4double diameter_Ge1;
-    G4double length_Ge1;
-    G4double holeDiameter_Ge1;
-    G4double holeDepth_Ge1;
-    
-    G4double backGapCup;
-    G4double sideGapCup;
-    G4double sideThicknessCup;
-    G4double backThicknessCup;
-    
-    G4double sideThickness1;
-    G4double diameterJacket1;
-    G4double frontGap1;
-    G4double frontThickness1;
-    G4double jacketLength1;
-    
-    
-    //Ge detector 2
-    G4double diameter_Ge2;
-    G4double length_Ge2;
-    G4double holeDiameter_Ge2;
-    G4double holeDepth_Ge2;
-    
-    G4double sideThickness2;
-    G4double diameterJacket2;
-    G4double frontGap2;
-    G4double frontThickness2;
-    G4double jacketLength2;
-    
-    //Ge detector 3
-    G4double diameter_Ge3;
-    G4double length_Ge3;
-    G4double holeDiameter_Ge3;
-    G4double holeDepth_Ge3;
-    
-    G4double sideThickness3;
-    G4double diameterJacket3;
-    G4double frontGap3;
-    G4double frontThickness3;
-    G4double jacketLength3;
-    
-    //dummy detector, catch ingoing and outgoing gamma's
-    
-    G4double dummyDiameter;
-    G4double dummyLength;
-    G4double dummyThickness;
- 
+    //germanium detectors
+    std::vector<GeDetector* > germanium_detectors;
+    ge_config_t ge2_conf,ge3_conf,ge4_conf,ge5_conf,ge6_conf,ge7_conf,ge8_conf;
+
+    //source
+    G4double sourceThickness;
+    G4double sourceDiameter;
     
 };
 

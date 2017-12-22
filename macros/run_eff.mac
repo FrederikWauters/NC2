@@ -1,0 +1,85 @@
+# Macro file for example NC1
+# 
+# Can be run in batch, without graphic
+# or interactively: Idle> /control/execute run1.mac
+#
+# Change the default number of workers (in multi-threading mode) 
+#/run/numberOfWorkers 4
+#
+# Initialize kernel
+/run/initialize
+#
+/control/verbose 2
+/run/verbose 2
+/event/verbose 0
+/tracking/verbose 0
+/hits/verbose 0
+#
+/analysis/setFileName out2S1S 
+#
+/gun/position 0 0 20 cm
+#
+#trial 1 for Zn
+#
+#2p1s    
+#/generator/energy 1600. keV
+#/generator/intensity 0.7161
+#
+#
+#Np1s with N>2
+#/generator/energy 1896.2962962963 keV
+#/generator/intensity 0.0817
+#
+#/generator/energy 2000. keV
+#/generator/intensity 0.0282
+#
+#/generator/energy 2048. keV
+#/generator/intensity 0.0175
+#
+#/generator/energy 2074.0740 keV
+#/generator/intensity 0.0224
+#
+#/generator/energy 2089.79 keV
+#/generator/intensity 0.021
+#
+#/generator/energy 2100. keV
+#/generator/intensity 0.0154
+
+#/generator/energy 2106.9958 keV
+#/generator/intensity 0.0203
+#
+#/generator/energy 2112. keV
+#/generator/intensity 0.0144
+#
+#/generator/energy 2115.702 keV
+#/generator/intensity 0.0137
+#
+#/generator/energy 2118.51 keV
+#/generator/intensity 0.0138
+#
+#/generator/energy 2120.7100 keV
+#/generator/intensity 0.0058
+#
+#/generator/energy 2122.4489 keV
+#/generator/intensity 0.0064
+#
+#>=15p1s
+#/generator/energy 2123.851 keV
+#/generator/intensity 0.02
+#
+#
+#2s1p
+/generator/energy 1686.42 keV
+/generator/intensity 0.9
+/generator/print
+#/gun/energy 2 MeV
+#
+/run/beamOn 40000
+
+# proton 210 MeV to the direction (0.,0.,1.)
+#
+#/gun/particle proton
+#/gun/energy 210 MeV
+#/tracking/verbose 2
+#
+#/run/beamOn 1

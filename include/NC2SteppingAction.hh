@@ -52,7 +52,6 @@ class NC2SteppingAction : public G4UserSteppingAction
 
   private:
     NC2EventAction*  fEventAction;
-    G4LogicalVolume* fScoringVolume;
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

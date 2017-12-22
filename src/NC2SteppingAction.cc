@@ -41,8 +41,7 @@
 
 NC2SteppingAction::NC2SteppingAction(NC2EventAction* eventAction)
 : G4UserSteppingAction(),
-  fEventAction(eventAction),
-  fScoringVolume(0)
+  fEventAction(eventAction)
 {}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -54,20 +53,10 @@ NC2SteppingAction::~NC2SteppingAction()
 
 void NC2SteppingAction::UserSteppingAction(const G4Step* step)
 {
-  if (!fScoringVolume) { 
-    const NC2DetectorConstruction* detectorConstruction
-      = static_cast<const NC2DetectorConstruction*>
-        (G4RunManager::GetRunManager()->GetUserDetectorConstruction());
-    fScoringVolume = detectorConstruction->GetScoringVolume();   
-  }
 
   // get volume of the current step
-  G4LogicalVolume* volume 
-    = step->GetPreStepPoint()->GetTouchableHandle()
-      ->GetVolume()->GetLogicalVolume();
+  G4LogicalVolume* volume  = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume()->GetLogicalVolume();
       
-  // check if we are in scoring volume
-  if (volume != fScoringVolume) return;
 
   // collect energy deposited in this step
   G4double edepStep = step->GetTotalEnergyDeposit();
