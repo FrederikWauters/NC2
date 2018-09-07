@@ -60,9 +60,9 @@ class NC2PrimaryGeneratorMessenger: public G4UImessenger
 
   private: //commands
     G4UIdirectory*             gunDirectory;
-    G4UIcmdWithABool*         useCmd;
+    /*G4UIcmdWithABool*         useCmd;
     G4UIcmdWithADoubleAndUnit* energyCmd;
-    G4UIcmdWithADouble* intensityCmd;
+    G4UIcmdWithADouble* intensityCmd;*/
     G4UIcmdWithoutParameter* printCmd;
 
 };

@@ -19,6 +19,15 @@ else()
   find_package(Geant4 REQUIRED)
 endif()
 
+#------------------------
+# Find and include ROOT
+#
+
+find_package(ROOT 5.34 REQUIRED)
+include_directories(${ROOT_INCLUDE_DIR})
+message("root libraries find under ${ROOT_LIBRARIES}")
+message("root include dir found under ${ROOT_INCLUDE_DIR}")
+
 #----------------------------------------------------------------------------
 # Setup Geant4 include directories and compile definitions
 # Setup include directory for this project
@@ -69,7 +78,7 @@ add_executable(NC2 NC2.cc ${sources} ${headers})
 #	set(CMAKE_EXE_LINKER_FLAGS ${ROOT_LD_FLAGS})
 #endif(useROOT)
 
-target_link_libraries(NC2 ${Geant4_LIBRARIES}) 
+target_link_libraries(NC2 ${Geant4_LIBRARIES} ${ROOT_LIBRARIES} ) 
 
 
 #----------------------------------------------------------------------------

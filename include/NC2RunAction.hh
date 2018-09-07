@@ -39,6 +39,13 @@
 //#include "TH1F.h"
 #include <vector>
 
+/* ROOT includes */
+#include <TFile.h>
+#include <TTree.h>
+#include <TH1D.h>
+#include <TH3D.h>
+#include <TBranch.h>
+
 class G4Run;
 class G4LogicalVolume;
 
@@ -58,18 +65,19 @@ class NC2RunAction : public G4UserRunAction
     virtual void BeginOfRunAction(const G4Run*);
     virtual void   EndOfRunAction(const G4Run*);
     
-    //void ClearVectors();
-    //void SetInteractionPoint(G4ThreeVector vec);
-    //void SetInteraction(G4int value) { interactions.push_back(value); };
-    //void PrintVector();
-    
+    void FillTree() {tree->Fill();}
+    int GetTestValue() { return test_value; }
      
     
   private:
-    //std::vector<G4float> x_interactions; needs to be defines in RunActions
-    //std::vector<G4float> y_interactions; 
-    //std::vector<G4float> z_interactions; 
-    //std::vector<G4int> interactions; 
+  
+    TFile *treeFile;
+    TTree *tree;
+    TH1D *hEPrimary;
+    TH3D *hPPrimary;
+    TTree *runTree;
+    int test_value;
+
 
 
 };

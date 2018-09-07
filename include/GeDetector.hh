@@ -4,6 +4,7 @@
 #include "Detector.hh"
 #include "G4SystemOfUnits.hh"
 #include "globals.hh"
+#include "NC2GermaniumSD.hh"
 #include <string>
 
 // Germanium Detector construction class to define materials and geometry.
@@ -42,7 +43,8 @@ class GeDetector : public Detector
     GeDetector(G4LogicalVolume* vol, ge_config_t cf);
     ~GeDetector();
     
-    void Place(G4bool checkOverlaps, G4bool visual); 
+    void Place(G4bool checkOverlaps, G4bool visual);
+    void SetSD(std::string name);
 
     ge_config_t GetConfig() {return config; }
     
@@ -61,6 +63,9 @@ class GeDetector : public Detector
     G4VPhysicalVolume* physical_cup;
     G4VPhysicalVolume* physical_jacket;
     G4VPhysicalVolume* physical_absorber;
+    
+    NC2GermaniumSD* sensitive_detector;
+    
     
   
 };

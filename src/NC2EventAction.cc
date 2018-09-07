@@ -33,6 +33,7 @@
 #include "NC2GermaniumHit.hh"
 #include "NC2DummyHit.hh"
 #include "NC2Analysis.hh"
+#include "NC2DetectorConstruction.hh"
 
 #include "G4Event.hh"
 #include "G4RunManager.hh"
@@ -44,11 +45,20 @@
 #include "G4ios.hh"
 
 
-NC2EventAction::NC2EventAction(NC2RunAction* ra): G4UserEventAction(),  fEdep(0.), fGeHCID(-1), fDummyHCID(-1)
+NC2EventAction::NC2EventAction(): G4UserEventAction()
 {
-  runAction = ra;
-  initE = 0.*MeV;
-
+  //runAction = ra;
+  geHCIDs.clear();
+  energyDepositions.clear();
+  
+  const NC2RunAction* constRunAction = static_cast<const NC2RunAction*>(G4RunManager::GetRunManager()->GetUserRunAction());
+  runAction = const_cast<NC2RunAction* > (constRunAction);
+  
+  nEvents = 0;
+  
+  hEPrimary = new TH1D("hEPrimary","Primary photon energies for the entire MC run; Energy (keV)",10000,0,10000);
+  hPPrimary = new TH3D("hPPrimary","Primart photon momentum for entire MC run; px;py;pz",200,-1,1,200,-1,1,200,-1,1);
+  
 } 
 
 
@@ -58,32 +68,37 @@ NC2EventAction::~NC2EventAction()
 
 void NC2EventAction::BeginOfEventAction(const G4Event*)
 {    
- G4SDManager* sdManager = G4SDManager::GetSDMpointer();
- if (fGeHCID==-1) 
- {
-      
-      fGeHCID = sdManager->GetCollectionID("GeSD/GeHitsCollection");
- }
- if (fDummyHCID==-1) 
- {
-      fDummyHCID = sdManager->GetCollectionID("DummySD/DummyHitsCollection");
- }
  
-   //empty vectors
-  //runAction->ClearVectors();
-  interactions.clear();
-  x_interactions.clear();
-  y_interactions.clear();
-  z_interactions.clear();
-  e_dummy.clear();
-  x_dummy.clear();
-  y_dummy.clear(); 
-  z_dummy.clear();
+  G4SDManager* sdManager = G4SDManager::GetSDMpointer();
+
+  if(geHCIDs.size() < 1)
+  {
+    const NC2DetectorConstruction* constDetectorConstruction = static_cast<const NC2DetectorConstruction*>(G4RunManager::GetRunManager()->GetUserDetectorConstruction());
+    NC2DetectorConstruction* detectorConstruction = const_cast<NC2DetectorConstruction*>(constDetectorConstruction);
+    std::vector<std::string> geDetNames = detectorConstruction->GetGeDetectorNames();
+  
+    for(auto &name: geDetNames)
+    {
+      std::string sd_name = name + "SD" + "/" + name + "HitsCollection";
+      int id = sdManager->GetCollectionID(sd_name);
+      geHCIDs[name] = id;
+      G4cout << name << " hc id = " << id << G4endl;
+    }
+    
+  }
+ 
+  //empty vector and maps
+  //initEs.clear(); //called after prim event generator, so don`t clear here
+  energyDepositions.clear();
+
+
+
 }
 
 
 void NC2EventAction::EndOfEventAction(const G4Event* event)
 {   
+  //G4cout << "end of event , initEs size : " << initEs.size() << G4endl; 
   
   G4HCofThisEvent* hce = event->GetHCofThisEvent();
   if (!hce) 
@@ -92,22 +107,24 @@ void NC2EventAction::EndOfEventAction(const G4Event* event)
       msg << "No hits collection of this event found." << G4endl; 
       G4Exception("NC2EventAction::EndOfEventAction()",  "Code001", JustWarning, msg);
       return;
-  }   
+  } 
   
- 
-   G4AnalysisManager* analysisManager = G4AnalysisManager::Instance(); 
- 
   //*******************************
   //Process Germanium detector hits
   //*******************************
   
-  // Get hits collections 
-  NC2GermaniumHitsCollection* geHC = static_cast<NC2GermaniumHitsCollection*>(hce->GetHC(fGeHCID));
-  if(!geHC) return;   // !!!!!!!!! For now, events with no Ge detector hit will be ignored!!!!!!!!!
-  G4int n_hit = geHC->entries();
+  bool fill = false;
   
-  if(n_hit > 0)
+  const NC2DetectorConstruction* constDetectorConstruction = static_cast<const NC2DetectorConstruction*>(G4RunManager::GetRunManager()->GetUserDetectorConstruction());
+  NC2DetectorConstruction* detectorConstruction = const_cast<NC2DetectorConstruction*>(constDetectorConstruction);
+  std::vector<std::string> geDetNames = detectorConstruction->GetGeDetectorNames();
+ 
+  for(auto &name: geDetNames)
   {
+    int hcID = geHCIDs[name];
+    NC2GermaniumHitsCollection* geHC = static_cast<NC2GermaniumHitsCollection*>(hce->GetHC(hcID));
+    G4int n_hit = geHC->entries();
+    
     G4double eDep = 0.;
     for(int i=0; i<n_hit; i++)
     {
@@ -117,55 +134,38 @@ void NC2EventAction::EndOfEventAction(const G4Event* event)
       if(trackID>0) //the first "hit" is not really a hit. Not sure if this is a general thing, so I check in the track number
       {
         eDep += hit->GetEdep();
-        if(trackID ==1) //follow the primary particle as It goes through the detector
-        {
-          //G4cout << " Set interaction point of type " << hit->GetProcessType() << G4endl;
-          G4ThreeVector pos  = hit->GetPos();
-          G4int type = hit->GetProcessType(); //check in SD code what is saved. For now, just EM interactions 13 is coulomb interactions
-          interactions.push_back(type);
-          x_interactions.push_back(pos.x());
-          y_interactions.push_back(pos.y());
-          z_interactions.push_back(pos.z());
-        }
+        fill = true;       
       }
+      
     }
-    analysisManager->FillNtupleDColumn(0, eDep);
-    analysisManager->FillNtupleDColumn(1, initE);
+    
+    energyDepositions[name] = eDep;
   }  
-   
-  //******************
-  //Process Dummy hits
-  //******************
-    
-  //Dummy Hits collection
-  NC2DummyHitsCollection* dummyHC = static_cast<NC2DummyHitsCollection*>(hce->GetHC(fDummyHCID)); //only gamma's are in the hits collection
-    
-  n_hit = dummyHC->entries(); 
-  if(n_hit > 0)
+  
+  
+  if(fill) 
   {
-    for(int i=0; i<n_hit; i++)
-    {
-      NC2DummyHit* hit = (*dummyHC)[i];
-      G4float energy = hit->GetEnergy();
-      G4int trackID =  hit->GetTrackID();
-      if(energy<initE-1. && trackID>0)
-      {
-        G4ThreeVector pos = hit->GetPos();
-        e_dummy.push_back(energy);
-        x_dummy.push_back(pos.x());
-        y_dummy.push_back(pos.y());
-        z_dummy.push_back(pos.z());
-      }
-    }
+    //G4cout << "initEs size : " << initEs.size() << G4endl;
+    //G4cout << "energyDepositions size : " << energyDepositions.size() << G4endl;
+    //G4cout << " test value " << runAction->GetTestValue() << G4endl;
+    runAction->FillTree(); //don`t write event with no ge hits
   }
   
+  for(const auto &e: initEs )
+  {
+    double e_keV = (double)e*1000.;
+    hEPrimary->Fill(e_keV);
+  }
   
-  //***********************
-  //* ADD ROW TO NTUPLE ***
-  //***********************
- 
-  analysisManager->AddNtupleRow();  //fill only get set if there was a GeSD hit
-    
+  for(unsigned int iP = 0; iP < initPxs.size(); iP++)
+  {
+    hPPrimary->Fill(initPxs.at(iP),initPys.at(iP),initPzs.at(iP));
+  }
+
+  nEvents++;
+
+}  
+   
   
-}
+
 

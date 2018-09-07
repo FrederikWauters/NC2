@@ -65,7 +65,7 @@ void NC2ActionInitialization::Build() const
   NC2RunAction* runaction = new NC2RunAction;
   SetUserAction(new NC2RunAction);
   
-  NC2EventAction* eventAction = new NC2EventAction(runaction);
+  NC2EventAction* eventAction = new NC2EventAction();
   SetUserAction(eventAction);
   
   NC2PrimaryGeneratorAction* primaryGenerator = new NC2PrimaryGeneratorAction(eventAction);

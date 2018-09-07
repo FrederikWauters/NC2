@@ -18,7 +18,7 @@ NC2PrimaryGeneratorMessenger::NC2PrimaryGeneratorMessenger(NC2PrimaryGeneratorAc
 
 
   // energy gamma line command
-  energyCmd = new G4UIcmdWithADoubleAndUnit("/generator/energy",this);
+  /*energyCmd = new G4UIcmdWithADoubleAndUnit("/generator/energy",this);
   energyCmd->SetGuidance("Set energy of gamma line");
   energyCmd->SetParameterName("Energy",false);
   energyCmd->SetRange("Energy>=0.");
@@ -40,37 +40,37 @@ NC2PrimaryGeneratorMessenger::NC2PrimaryGeneratorMessenger(NC2PrimaryGeneratorAc
   useCmd->SetGuidance("This command MUST be applied after /generator/energy");
   useCmd->SetParameterName("Choice",true);
   useCmd->SetDefaultValue((G4bool)true);
-  useCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
+  useCmd->AvailableForStates(G4State_PreInit,G4State_Idle);*/
   
 
   
   printCmd = new G4UIcmdWithoutParameter("/generator/print",this);
-  printCmd->SetGuidance("Print gamma's.");
+  printCmd->SetGuidance("Print level's.");
   printCmd->AvailableForStates(G4State_Idle);
   
 }
 
 NC2PrimaryGeneratorMessenger::~NC2PrimaryGeneratorMessenger()
 {
-  delete energyCmd;
+  /*delete energyCmd;
   delete intensityCmd;
-  delete useCmd;
+  delete useCmd;*/
   delete printCmd;
 }
 
 void NC2PrimaryGeneratorMessenger::SetNewValue(G4UIcommand * command,G4String newValue)
 {
-  if( command == energyCmd )
+  /*if( command == energyCmd )
     { generator->SetNewEnergy(energyCmd->GetNewDoubleValue(newValue));}
 
   if( command == intensityCmd )
     { generator->SetNewIntensity(intensityCmd->GetNewDoubleValue(newValue));}
 
   if( command == useCmd )
-    { generator->SetNewUse(useCmd->GetNewBoolValue(newValue));}
+    { generator->SetNewUse(useCmd->GetNewBoolValue(newValue));}*/
     
   if( command == printCmd )
-    { generator->PrintGammas();}
+    { generator->PrintLevels();}
 }
 
 

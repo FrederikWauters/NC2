@@ -41,6 +41,9 @@
 #include "G4SystemOfUnits.hh"
 #include "Randomize.hh"
 
+#include<iterator>
+#include<cstdlib>
+
 
 //#include "G4UniformRand.hh"
 
@@ -50,14 +53,13 @@ NC2PrimaryGeneratorAction::NC2PrimaryGeneratorAction(NC2EventAction* ea): G4VUse
 {
   G4int n_particle = 1;
   
-  cosThetaLow = -1; //define a cone along the Z axis as a source
-  cosThetaHigh = -0.985;
+  cosThetaLow = -0.36; //the detectors are sitting in the XY plane
+  cosThetaHigh = 0.36;
   //cosThetaHigh = -0.98;
   
-  gammas.clear();
-  entries = 0;
- 
-
+  //cosThetaLow=-1.;
+  //cosThetaHigh=1.;
+  
   fParticleGun  = new G4ParticleGun(n_particle);
   messenger = new NC2PrimaryGeneratorMessenger(this);
   
@@ -67,6 +69,10 @@ NC2PrimaryGeneratorAction::NC2PrimaryGeneratorAction(NC2EventAction* ea): G4VUse
   G4ParticleDefinition* particle  = particleTable->FindParticle(particleName="gamma");
   fParticleGun->SetParticleDefinition(particle);
   defaultEnergy = 1.*MeV; //default energy
+  levels.clear();
+  SetLevels();
+  PrintLevels();
+  
 }
 
 
@@ -85,100 +91,251 @@ void NC2PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   //  G4LogicalVolume* envLV = G4LogicalVolumeStore::GetInstance()->GetVolume("World"); //grab something from the detector construction
   //fParticleGun->SetParticlePosition(G4ThreeVector(0,0,200*mm));
   
+  
+  //Get Seed Level
+  Level* level = GetSeedLevel();
+  
+  std::vector<G4double> energies;
+  
+  eventAction->ClearInitLevels();
+  eventAction->AddLevel(level->GetName());
+  
+  while(level->Get_n() > 1)
+  {
+    G4double energy;
+    level = level->GetTransition(&energy);
+    eventAction->AddLevel(level->GetName());
+    energies.push_back(energy);
+  }
+
+  eventAction->ClearInitEnergies();
+  eventAction->ClearInitPs();
+  
+  
+  for(const auto &e : energies )
+  {
+    SetRandomDirection(fParticleGun);
+    fParticleGun->SetParticleEnergy(e);
+    eventAction->AddInitEnergy(e); //save init energy in output file
+    fParticleGun->GeneratePrimaryVertex(anEvent);
+  }
+}
+
+
+void NC2PrimaryGeneratorAction::SetLevels() //hard coding for now, not super elegenant
+{
+
+  //levels can`t be a vector, as it will chance the address of the members when adding new ones
+  //if I have cross-referenced before, things get messed up
+  //
+  //one solution is std::unique_ptr : auto level1s = std::uniuqe_ptr<Level>( new Level(1,0,0.5,"1s") );
+  //  levels.emplace_back( std::move(level1s) );
+  //   level2p1.SetTransition(level1s.get(), 1);
+  //
+  // or a map should also work. see table in https://en.cppreference.com/w/cpp/container
+  
+  
+  //1S  
+  Level level1s(1,0,0.5,"1s");
+  level1s.SetEnergy(0); // set 1s energy level to "0", instead of 
+  levels[ "1s" ] = level1s;
+  
+  
+  
+  //2P levels
+  Level level2p1(2,1,0.5,"2p_1/2");
+  level2p1.SetEnergy(1595.42*keV);
+  level2p1.SetTransition(&levels["1s"],1);
+  levels[ level2p1.GetName() ] = level2p1;
+  
+  Level level2p2(2,1,1.5,"2p_3/2");
+  level2p2.SetEnergy(1602.61*keV);
+  level2p2.SetTransition(&levels["1s"],1);
+  levels[ level2p2.GetName() ] = level2p2;
+    
+  
+  //2S
+  Level level2s(2,0,0.5,"2s");
+  level2s.SetEnergy(1639.476*keV);
+  level2s.SetTransition(&levels["2p_1/2"],1-0.0024); //Feyman and Chen
+  level2s.SetTransition(&levels["1s"],0.0024);
+  levels[ level2s.GetName() ] = level2s;
+  
+  
+  
+  //these transition strengths are preliminary, and have to come from either data, or Vogel's calculation
+  
+  //3P
+  Level level3p1(3,1,0.5,"3p_1/2");
+  level3p1.SetEnergy(1953.921*keV); 
+  level3p1.SetTransition(&levels["1s"],0.1); //my miniball 2016 note
+  level3p1.SetTransition(&levels["2s"],0.022);
+  levels[ level3p1.GetName() ] = level3p1;
+  
+  Level level3p2(3,1,1.5,"3p_3/2");
+  level3p2.SetEnergy(1956.013*keV);
+  level3p2.SetTransition(&levels["1s"],0.1);
+  level3p2.SetTransition(&levels["2s"],0.02);
+  levels[ level3p2.GetName() ] = level3p2;
+  
+  //4P
+  Level level4p1(4,1,0.5,"4p_1/2");
+  level4p1.SetEnergy(2078.919*keV);
+  level4p1.SetTransition(&levels["1s"],0.028);
+  level4p1.SetTransition(&levels["2s"],0.0046);//https://muon.npl.washington.edu/elog/neutralcurrents/Plans+and+Analysis/11
+  levels[ level4p1.GetName() ] = level4p1;
+  
+  Level level4p2(4,1,0.5,"4p_3/2");
+  level4p2.SetEnergy(2079.794*keV);
+  level4p2.SetTransition(&levels["1s"],0.028);
+  level4p2.SetTransition(&levels["2s"],0.0046);
+  levels[ level4p2.GetName() ] = level4p2;
+  
+  //5P
+  Level level5p1(5,1,0.5,"5p_1/2");
+  level5p1.SetEnergy(2136.6*keV);
+  level5p1.SetTransition(&levels["1s"],0.017);
+  level5p1.SetTransition(&levels["2s"],0.0036);
+  levels[ level5p1.GetName() ] = level5p1;
+  
+  Level level5p2(5,1,1.5,"5p_3/2");
+  level5p2.SetEnergy(2134.247*keV);
+  level5p2.SetTransition(&levels["1s"],0.017);
+  level5p2.SetTransition(&levels["2s"],0.0036);
+  levels[ level5p2.GetName() ] = level5p2;
+  
+  //6P
+  Level level6p1(6,1,0.5,"6p_1/2");
+  level6p1.SetEnergy(2164.521*keV);
+  level6p1.SetTransition(&levels["1s"],0.022);
+  level6p1.SetTransition(&levels["2s"],0.0043);
+  levels[ level6p1.GetName() ] = level6p1;
+  
+  Level level6p2(6,1,1.5,"6p_3/2");
+  level6p2.SetEnergy(2164.779*keV);
+  level6p2.SetTransition(&levels["1s"],0.022);
+  level6p2.SetTransition(&levels["2s"],0.0043);
+  levels[ level6p2.GetName() ] = level6p2;
+  
+  //7P
+  Level level7p1(7,1,0.5,"6p_1/2");
+  level7p1.SetEnergy(2184*keV);
+  level7p1.SetTransition(&levels["1s"],0.021);
+  level7p1.SetTransition(&levels["2s"],0.0034);
+  levels[ level7p1.GetName() ] = level7p1;
+  
+  Level level7p2(7,1,1.5,"7p_3/2");//for consistency, current transition strength are per muon * 2 (as there are two finestates)
+  level7p2.SetEnergy(2184*keV);
+  level7p2.SetTransition(&levels["1s"],0.021);
+  level7p2.SetTransition(&levels["2s"],0.0034);
+  levels[ level7p2.GetName() ] = level7p2;
+  
+ 
+  //8P
+  Level level8p1(8,1,0.5,"8p_1/2");
+  level8p1.SetEnergy(2197*keV);
+  level8p1.SetTransition(&levels["1s"],0.02);
+  level8p1.SetTransition(&levels["2s"],0.003);
+  levels[ level8p1.GetName() ] = level8p1;
+  
+  Level level8p2(8,1,1.5,"8p_3/2");//for consistency, current transition strength are per muon * 2 (as there are two finestates)
+  level8p2.SetEnergy(2197*keV);
+  level8p2.SetTransition(&levels["1s"],0.02);
+  level8p2.SetTransition(&levels["2s"],0.003);
+  levels[ level8p2.GetName() ] = level8p2;
+  
+  //9+P
+  Level level9p1(8,1,0.5,"9p+1");
+  level9p1.SetEnergy(2220*keV);
+  level9p1.SetTransition(&levels["1s"],0.1);
+  level9p1.SetTransition(&levels["2s"],0.018);
+  levels[ level9p1.GetName() ] = level9p1;
+  
+  Level level9p2(8,1,1.5,"9p+2"); //for consistency, current transition strength are per muon * 2 (as there are two finestates)
+  level9p2.SetEnergy(2220*keV);
+  level9p2.SetTransition(&levels["1s"],0.1);
+  level9p2.SetTransition(&levels["2s"],0.018);
+  levels[ level9p2.GetName() ] = level9p2;
+
+
+}
+
+Level* NC2PrimaryGeneratorAction::GetSeedLevel()
+{
+  //method 1: MC selection of a p level
+  int method = 1;
+  
+  bool level_found = false;
+
+  Level* level;
+  
+  switch(method)
+  {
+    case 1:
+      while(!level_found)
+      {
+        //select random level
+        auto it = levels.begin();
+        std::advance(it, std::rand() % levels.size() );
+        level = &(it->second);
+
+        if(level->Get_l() == 1)
+        {
+          G4double trial_b = G4UniformRand(); //assuming the transition strength are < 1 and proportional to each other
+          if( trial_b < level->GetTotalStrength() )
+          level_found = true;
+        } 
+      }
+      break;
+      
+    default: 
+      level = NULL; 
+      G4cout << " no seed level selection method selected " << G4endl; 
+      break;
+  }
+
+  
+  return level;
+}
+
+G4ThreeVector NC2PrimaryGeneratorAction::SetRandomDirection(G4ParticleGun* gun)
+{
+
   //Generate random direction
-  G4double cosTheta = (cosThetaHigh-cosThetaLow)*G4UniformRand()+cosThetaLow;
+  G4double cosTheta = (cosThetaHigh-cosThetaLow)*G4UniformRand()+cosThetaLow; 
   G4double phi      = 2*M_PI*G4UniformRand();
   G4double sinTheta = std::sqrt(1. - cosTheta*cosTheta);
   
   G4double px = cos(phi)*sinTheta ;
   G4double py = sinTheta*sin(phi);
   G4double pz = cosTheta;
-  fParticleGun->SetParticleMomentumDirection(G4ThreeVector(px,py,pz));
+    
+  eventAction->AddInitPx(px);
+  eventAction->AddInitPy(py);
+  eventAction->AddInitPz(pz);
   
-
- //Get energy from input spectrum (set in macro)
-  G4double init_energy;
-  if(entries > 0)
-  {
-    init_energy = GetEnergy();    
-  } 
-  else { G4cout <<  " No gamma available from list, use default" << G4endl; init_energy = defaultEnergy;}
+  gun->SetParticleMomentumDirection(G4ThreeVector(px,py,pz));
   
-  fParticleGun->SetParticleEnergy(init_energy);
-  eventAction->SetInitEnergy(init_energy); //save init energy in output file
-  fParticleGun->GeneratePrimaryVertex(anEvent);
 }
-
-
-
-
-
-void NC2PrimaryGeneratorAction::SetNewEnergy(G4double value) 
-{
-  //always call this one first!
-  Gamma gamma;
-  gamma.energy = value;
-  gamma.intensity = -1.;
-  gamma.use=true;
-  gammas.push_back(gamma);
-  entries++;
-}
-
-
-void NC2PrimaryGeneratorAction::SetNewIntensity(G4double value) 
-{
-  G4cout << "entries : " << entries << G4endl;
-  if(entries < 1) { G4cout << " ******** Set gamma energy first ********** " << G4endl; return; }
-  if(gammas.at(entries-1).intensity>0) { G4cout << " *********** This intensity was already set, first set a new gamma energy !!! ******* " << G4endl; return; }
-  else
-  {
-    gammas.at(entries-1).intensity=value;
-  }
-  
-  G4cout << "Set intensity of " << value << G4endl;
-}
-
-
-void NC2PrimaryGeneratorAction::SetNewUse(G4bool value) 
-{
-  gammas.at(entries).use=value;
-}
-  
-G4double NC2PrimaryGeneratorAction::GetEnergy()
-{
-  G4bool success = false;
-  G4double energy = 0.;
-  if (entries < 1) G4cout << " No gamma's to choose from! " << G4endl;
-  while(!success)
-  {
-    G4int trial_a = int(trunc(G4UniformRand()*entries)); //random integer number between 0 and entries -1
-    //G4cout << "trial_a " << trial_a << G4endl;
-    if(gammas.at(trial_a).use == true)
-    {
-      G4double trial_b = G4UniformRand();
-      if(gammas.at(trial_a).intensity > trial_b)
-      {
-        energy = gammas.at(trial_a).energy;
-        success = true;
-      }
-    }
-  }
-  //G4cout << energy << G4endl;
-  return energy;
-}
-
-void NC2PrimaryGeneratorAction::PrintGammas()
+    
+void NC2PrimaryGeneratorAction::PrintLevels()
 {
   G4cout << " **************************************** " << G4endl;
-  G4cout << " ********** Print Gamma's *************** " << G4endl;
+  G4cout << " ********** Print Levels's *************** " << G4endl;
   G4cout << " **************************************** " << G4endl << G4endl;
   
-  if( gammas.size() != entries || entries <1) { G4cout << " !!! unable to print gamma's !!! " << G4endl; return; }
+  if( levels.size() <1) { G4cout << " !!! unable to print gamma's !!! " << G4endl; return; }
   
-  G4cout << " Energy (MeV)	intensity	use (1/0) " << G4endl;
-  for(int i = 0; i <entries; i++)
+  G4cout << " Level	Energy	daughter levels" << G4endl;
+  for(auto& x : levels)
   {
-    G4cout << gammas.at(i).energy << "	" << gammas.at(i).intensity << "	" << gammas.at(i).use << G4endl;  
+    std::vector<Level*>* daughters = x.second.GetDaughterLevels();
+    G4cout << x.second.GetName() << "	" << x.second.GetEnergy() << "	" << daughters->size() << G4endl; 
+  
+    for(unsigned int j = 0; j < daughters->size(); j++)
+    {
+      G4cout << " daughter n " << daughters->at(j)->Get_n() << "	daughter l " << daughters->at(j)->Get_n() << "	daughter name " << daughters->at(j)->GetName() << G4endl;
+    }
   }
   
   G4cout << G4endl << " ************************** " << G4endl << G4endl;

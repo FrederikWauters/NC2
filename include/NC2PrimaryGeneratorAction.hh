@@ -35,7 +35,10 @@
 #include "G4ParticleGun.hh"
 #include "globals.hh"
 #include "NC2EventAction.hh"
+#include "Level.hh"
 #include <vector>
+#include <map>
+#include <string>
 	
 
 class G4ParticleGun;
@@ -62,26 +65,23 @@ class NC2PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     // method to access particle gun
     const G4ParticleGun* GetParticleGun() const { return fParticleGun; }
     
-    G4double GetEnergy();
-    
+    std::vector<G4double> GetCascade(); //energies for cascade    
 
 
-    void SetNewEnergy(G4double value) ;
-    void SetNewIntensity(G4double value) ;
-    void SetNewUse(G4bool value) ;
+    void SetLevels() ;
     
-    struct Gamma {
-    double energy;
-    double intensity;
-    bool use;
-    };
-    
-    void PrintGammas();
+    void PrintLevels();
   
   private:
+  
     G4ParticleGun*  fParticleGun; // pointer a to G4 gun class
     
-    int rand (void);
+    //int rand (void);
+    
+    G4ThreeVector SetRandomDirection(G4ParticleGun* gun);
+    
+    Level* GetSeedLevel();
+    Level* GetLevel(std::string name);
 
     NC2PrimaryGeneratorMessenger* messenger;
     NC2EventAction* eventAction;
@@ -90,8 +90,9 @@ class NC2PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     G4double cosThetaLow;
     G4double cosThetaHigh;
     
-    std::vector<Gamma> gammas;
-    G4int entries;
+    std::map< std::string, Level > levels;
+    Level* start_level;
+    
     G4double defaultEnergy;
     
     //Energies en intensities

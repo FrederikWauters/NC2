@@ -48,7 +48,6 @@
 
 
 #include "G4SDManager.hh"
-#include "NC2GermaniumSD.hh"
 #include "NC2DummySD.hh"
 
 
@@ -66,7 +65,7 @@ NC2DetectorConstruction::NC2DetectorConstruction(): G4VUserDetectorConstruction(
  
   // germanium detector parameters
   
-  //survey results
+  //survey results2017
  /* PunktS1 -1.117 94.560 9557.515
 PunktS2 70.610 58.285 9564.941
 PunktS3 97.267 -11.483 9557.375
@@ -83,7 +82,9 @@ S1L2 -13.315 117.797 9519.786
 S1L3 -33.423 77.644 9585.485
 Zyl 2.083 0.467 9440.597*/
 
-G4ThreeVector origin(2.083*mm, 0.467*mm, 9440.597*mm);
+
+
+/*G4ThreeVector origin(2.083*mm, 0.467*mm, 9440.597*mm);
 
 G4ThreeVector ge2_pos(70.610*mm, 58.285*mm, 9564.941*mm);
 G4ThreeVector ge3_pos(97.267*mm, -11.483*mm, 9564.941*mm);
@@ -94,10 +95,22 @@ G4ThreeVector ge7_pos(-107.477*mm,-9.624*mm, 9574.415*mm);
 G4ThreeVector ge8_pos(-92.412*mm, 63.811*mm, 9581.075*mm);
 
 
+*/
 
+//simplified geometry
+
+G4ThreeVector origin(0*mm, 0*mm, 0*mm);
+G4ThreeVector ge1_pos(130*mm, 0*mm, 0*mm);
+G4ThreeVector ge2_pos(91.9*mm, 91.9*mm, 0*mm);
+G4ThreeVector ge3_pos(0*mm, 130*mm, 0*mm);
+G4ThreeVector ge4_pos(-91.9*mm, 91.9*mm, 0*mm);
+G4ThreeVector ge5_pos(-130*mm, 0*mm, 0*mm);
+G4ThreeVector ge6_pos(-91.9*mm, -91.9*mm, 0*mm);
+G4ThreeVector ge7_pos(-130*mm, 0*mm, 0*mm);
+G4ThreeVector ge8_pos(91.9*mm, -91.9*mm, 0*mm);
 
                //name  //diameter  //length  //bore diam  //bore depth   <--- crystal
-  ge2_conf = { "Ge2",  70*mm,      70.*mm,   11*mm,       55*mm,
+  ge1_conf = { "Ge1",  70*mm,      70.*mm,   11*mm,       55*mm,
 	       //backgap  //side gap  //side thickness  //back thickness  <--- cup
 	       10.0*mm,   0.1*mm,     0.8*mm,           3.0*mm,
 	       //front gap  //side gap  //side thickness  //front thickness  <--- Jacket
@@ -105,34 +118,36 @@ G4ThreeVector ge8_pos(-92.412*mm, 63.811*mm, 9581.075*mm);
 	       //absorber thickness
 	       0.8*mm,
 	       //position  //origin
-	       ge2_pos,    origin
+	       ge1_pos,    origin
               };
+              
+  ge2_conf = ge1_conf;
+  ge2_conf.name = "Ge2";
+  ge2_conf.pos = ge2_pos;
 	      
-  ge3_conf = ge2_conf;
+  ge3_conf = ge1_conf;
   ge3_conf.name = "Ge3";
   ge3_conf.pos = ge3_pos;
   
-  ge4_conf = ge2_conf;
+  ge4_conf = ge1_conf;
   ge4_conf.name = "Ge4";
   ge4_conf.pos = ge4_pos;
   
-  ge5_conf = ge2_conf;
+  ge5_conf = ge1_conf;
   ge5_conf.name = "Ge5";
   ge5_conf.pos = ge5_pos;
   
-  ge6_conf = ge2_conf;
+  ge6_conf = ge1_conf;
   ge6_conf.name = "Ge6";
-  ge6_conf.pos = ge6_pos;
+  ge6_conf.pos = ge6_pos; 
   
-  ge7_conf = ge2_conf;
+  ge7_conf = ge1_conf;
   ge7_conf.name = "Ge7";
   ge7_conf.pos = ge7_pos;
   
-  ge8_conf = ge2_conf;
+  ge8_conf = ge1_conf;
   ge8_conf.name = "Ge8";
   ge8_conf.pos = ge8_pos;
-  
-
  
   //source
   sourceThickness = 0.7*mm;
@@ -192,24 +207,30 @@ G4VPhysicalVolume* NC2DetectorConstruction::Construct()
   // Germanium detectors
   //
    
-
+  GeDetector* Ge1 = new GeDetector(logicWorld,ge1_conf);    germanium_detectors.push_back(Ge1);
   GeDetector* Ge2 = new GeDetector(logicWorld,ge2_conf);    germanium_detectors.push_back(Ge2);
   GeDetector* Ge3 = new GeDetector(logicWorld,ge3_conf);    germanium_detectors.push_back(Ge3);
   GeDetector* Ge4 = new GeDetector(logicWorld,ge4_conf);    germanium_detectors.push_back(Ge4);
   GeDetector* Ge5 = new GeDetector(logicWorld,ge5_conf);    germanium_detectors.push_back(Ge5);
   GeDetector* Ge6 = new GeDetector(logicWorld,ge6_conf);    germanium_detectors.push_back(Ge6);
   GeDetector* Ge7 = new GeDetector(logicWorld,ge7_conf);    germanium_detectors.push_back(Ge7);
-  //GeDetector* Ge8 = new GeDetector(logicWorld,ge8_conf);    germanium_detectors.push_back(Ge8);
+  GeDetector* Ge8 = new GeDetector(logicWorld,ge8_conf);    germanium_detectors.push_back(Ge8);
   
   G4bool visualize = true;
   for(auto &detector: germanium_detectors)
   {
     detector->Place(checkOverlaps,visualize);
+    std::string name = detector->GetConfig().name;
+    detector->SetSD(name);
   }
-  //Ge2->Place(checkOverlaps,visualize);
+
+  
+  //
+  // Other stuff
+  //
   
   G4Tubs* solidSource = new G4Tubs("solidSource",0.,sourceDiameter/2.,sourceThickness/2.,0.,2*M_PI);
-  G4LogicalVolume* logicSource = new G4LogicalVolume(solidSource,zn_mat,"logicsource");
+  G4LogicalVolume* logicSource = new G4LogicalVolume(solidSource,world_mat,"logicsource");
   G4ThreeVector sourcePosition(0,0,0);
   new G4PVPlacement(0, sourcePosition,   logicSource,  "Source",  logicWorld,  false,     0,  checkOverlaps); 
 
@@ -225,6 +246,7 @@ G4VPhysicalVolume* NC2DetectorConstruction::Construct()
   logicSource->SetVisAttributes(sourceVisAtt);
 
   /*logicDummy->SetVisAttributes(dummyVisAtt);*/
+  
   //
   //always return the physical World
   //
@@ -262,6 +284,14 @@ void NC2DetectorConstruction::Print()
 }
 
 
-
-
+std::vector<std::string> NC2DetectorConstruction::GetGeDetectorNames()
+{
+  std::vector<std::string> vout;
+  for(auto &detector: germanium_detectors)
+  {
+    std::string name = detector->GetConfig().name;
+    vout.push_back(name);
+  }
+  return vout;
+}
 

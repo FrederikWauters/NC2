@@ -28,6 +28,9 @@
 /// \file NC2RunAction.cc
 /// \brief Implementation of the NC2RunAction class
 
+#include <string>
+#include <ctime>
+
 #include "NC2RunAction.hh"
 #include "NC2PrimaryGeneratorAction.hh"
 #include "NC2DetectorConstruction.hh"
@@ -48,16 +51,19 @@
 NC2RunAction::NC2RunAction()
 : G4UserRunAction()
 { 
-  
-  // Create analysis manager
-  // The choice of analysis technology is done via selectin of a namespace
-  // in B5Analysis.hh
-  G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
-  G4cout << "Using " << analysisManager->GetType() << G4endl;
 
-  // Default settings
-  analysisManager->SetVerboseLevel(1);
-  analysisManager->SetFileName("outfile");  
+  
+  
+  //set root file output
+  char filename[256] = "out.root";
+  treeFile = TFile::Open(filename, "recreate");   
+  if(!treeFile || treeFile->IsZombie()){ printf("Could not open tree file %s!\n", filename); }
+  else
+  {
+    std::cout << "**************************" << std::endl;
+    std::cout << "writing trees to " << filename << std::endl;
+  }  
+  treeFile->cd(); 
 
 }
 
@@ -70,7 +76,6 @@ NC2RunAction::~NC2RunAction()
 
 G4Run* NC2RunAction::GenerateRun()
 {
-
   return new NC2Run; 
 }
 
@@ -81,42 +86,36 @@ void NC2RunAction::BeginOfRunAction(const G4Run*)
   //inform the runManager to save random number seed
   G4RunManager::GetRunManager()->SetRandomNumberStore(false);
   
+  //set random engine seed
+  time_t t = std::time(0);
+  long int now = static_cast<long int> (t);
+  CLHEP::HepRandom::setTheSeed(now);
   
-  // Get analysis manager
-  G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
-
-  // Open an output file 
-  // The default file name is set in B5RunAction::B5RunAction(),
-  // it can be overwritten in a macro
-  analysisManager->OpenFile();
-  
-  // Creating 1D histograms
-  //analysisManager->CreateH1("hGermaniumEdep","Energy deposition in Ge detector", 4000, 0., 4000); //this does work with the newest root version
-  // http://hypernews.slac.stanford.edu/HyperNews/geant4/get/analysis/474.html
-  
-  // Get event action
   const NC2EventAction* constEventAction = static_cast<const NC2EventAction*>(G4RunManager::GetRunManager()->GetUserEventAction());
   NC2EventAction* eventAction = const_cast<NC2EventAction*>(constEventAction);
   
-  analysisManager->CreateNtuple("Germanium", "Germanium detector hits");
-  //basic Ge detector info
-  analysisManager->CreateNtupleDColumn("Edep"); //0
-  analysisManager->CreateNtupleDColumn("Einit");
-  //multiplicity in the detector
-  analysisManager->CreateNtupleIColumn("Interactions",eventAction->GetInteractions()); //2
-  analysisManager->CreateNtupleFColumn("x_interactions",eventAction->GetXInteractions());
-  analysisManager->CreateNtupleFColumn("y_interactions",eventAction->GetYInteractions());
-  analysisManager->CreateNtupleFColumn("z_interactions",eventAction->GetZInteractions());
+  //define output
+  tree = new TTree("EventTree","MC muonic X-ray events");
+  TTree::SetBranchStyle(1);
   
-  //dummy detector hits
-  analysisManager->CreateNtupleFColumn("E_Dummy",eventAction->GetEDummy()); //6
-  analysisManager->CreateNtupleFColumn("x_Dummy",eventAction->GetXDummy());
-  analysisManager->CreateNtupleFColumn("y_Dummy",eventAction->GetYDummy());
-  analysisManager->CreateNtupleFColumn("z_Dummy",eventAction->GetZDummy());
+  test_value = 2;
+  
+  //tree->Branch("test",&test_value,"test/I");
+  tree->Branch("EInits",eventAction->GetEInits());
+  tree->Branch("pxInits",eventAction->GetPxInits());
+  tree->Branch("pyInits",eventAction->GetPyInits());
+  tree->Branch("pzInits",eventAction->GetPzInits());
+  tree->Branch("Levels",eventAction->GetLevels());
+  tree->Branch("Edeps",eventAction->GetEnergyDepositions());
+  
+  runTree = new TTree("RunTree","Simulation config");
 
-  //do work now, but with some effort:  http://hypernews.slac.stanford.edu/HyperNews/geant4/get/analysis/473/1/1/1.html
- 
-  analysisManager->FinishNtuple();   
+  runTree->Branch("nEvents",eventAction->GetNevents(),"nEvents/l");
+  
+  hEPrimary = new TH1D();
+  
+  hPPrimary = new TH3D();
+
 }
 
 
@@ -125,45 +124,24 @@ void NC2RunAction::EndOfRunAction(const G4Run* run)
 {
   G4int nofEvents = run->GetNumberOfEvent();
   if (nofEvents == 0) return;
-  
   const NC2Run* b1Run = static_cast<const NC2Run*>(run);
   
-  // save histograms & ntuple
-  //
-  G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
-  analysisManager->Write();
-  analysisManager->CloseFile();  
+  const NC2EventAction* constEventAction = static_cast<const NC2EventAction*>(G4RunManager::GetRunManager()->GetUserEventAction());
+  NC2EventAction* eventAction = const_cast<NC2EventAction*>(constEventAction);
+  
+  runTree->Fill();
+  
+  *hEPrimary = eventAction->GetPrimaryEnergyHistogram();
+  hEPrimary->Write();
+  
+  *hPPrimary = eventAction->GetPrimaryMomentumHistogram();
+  hPPrimary->Write();
+  
+  if(treeFile){
+   treeFile->Write(0,TObject::kOverwrite); //https://root.cern.ch/root/roottalk/roottalk02/0899.html cycles and such
+   treeFile->Close();
+  }
 }
 
 
-/*void NC2RunAction::ClearVectors()
-{
-  if(interactions.size()>0)
-  {
-    //for(int i = 0; i < interactions.size(); i++) G4cout << interactions.at(i) << G4endl;
-  }
 
-  x_interactions.clear();
-  y_interactions.clear();
-  z_interactions.clear();
-  interactions.clear();
-
-}*/
-
-
-/*void NC2RunAction::SetInteractionPoint(G4ThreeVector vec)
-{
-  x_interactions.push_back(vec[0]);
-  y_interactions.push_back(vec[1]);
-  z_interactions.push_back(vec[2]);
-}
-
-
-void NC2RunAction::PrintVector()
-{
-  G4cout << "size vector : " << interactions.size() << G4endl;
-  if(interactions.size() > 0) 
-  {
-    for(int i = 0; i < interactions.size(); i++) G4cout << " interactions.at("<<i<<") = " << interactions.at(i) << G4endl;
-  }
-}*/

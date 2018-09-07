@@ -35,48 +35,67 @@
 #include "globals.hh"
 #include "NC2RunAction.hh"
 
+#include <map>
+#include <TH1D.h>
+#include <TH3D.h>
+
 /// Event action class
 ///
 
 class NC2EventAction : public G4UserEventAction
 {
   public:
-    NC2EventAction(NC2RunAction* ra);
+    NC2EventAction();
     virtual ~NC2EventAction();
     
     virtual void BeginOfEventAction(const G4Event*);
     virtual void EndOfEventAction(const G4Event*);
 
-    void AddEdep(G4double edep) { fEdep += edep; }
-    void SetInitEnergy(G4double value) { initE = value; }
+    void AddEdep(std::string detector, G4double value) { energyDepositions[detector] = value; };
+    void ClearInitEnergies() { initEs.clear(); };
+    void ClearInitLevels() { levels.clear(); };
+    void AddInitEnergy(G4double value) { initEs.push_back(value); };
+    void AddLevel(std::string value) { levels.push_back(value); };
     
-    std::vector<G4int>& GetInteractions() { return interactions; }
-    std::vector<G4float>& GetXInteractions() { return x_interactions; }
-    std::vector<G4float>& GetYInteractions() { return y_interactions; }
-    std::vector<G4float>& GetZInteractions() { return z_interactions; }
+    std::map<std::string, G4double>* GetEnergyDepositions() { return &energyDepositions; };
+    std::vector<G4double>* GetEInits() {return &initEs; };
+    std::vector<std::string>* GetLevels() { return &levels; };
+    unsigned long int* GetNevents() { return &nEvents; };
+    TH1D GetPrimaryEnergyHistogram() { return *hEPrimary; }
+    TH3D GetPrimaryMomentumHistogram() { return *hPPrimary; }
     
-    std::vector<G4float>& GetEDummy() { return e_dummy; }
-    std::vector<G4float>& GetXDummy() { return x_dummy; }
-    std::vector<G4float>& GetYDummy() { return y_dummy; }
-    std::vector<G4float>& GetZDummy() { return z_dummy; }
+    std::vector<G4double>* GetPxInits() {return &initPxs; };
+    std::vector<G4double>* GetPyInits() {return &initPys; };
+    std::vector<G4double>* GetPzInits() {return &initPzs; };
+    
+    void AddInitPx(G4double value) { initPxs.push_back(value); };
+    void AddInitPy(G4double value) { initPys.push_back(value); };
+    void AddInitPz(G4double value) { initPzs.push_back(value); };
+    void ClearInitPs() { initPxs.clear(); initPys.clear(); initPzs.clear(); };
 
   private:
-    G4double  fEdep;
-    //hit collection ID's
-    G4int fGeHCID;
-    G4int fDummyHCID;
+  
     NC2RunAction* runAction;
-    G4double initE; //set from primary generator
-    std::vector<G4int> interactions; //set to fill tree
-    std::vector<G4float> x_interactions;
-    std::vector<G4float> y_interactions; 
-    std::vector<G4float> z_interactions;
+        
+    //hit collection ID's
+    std::map<std::string, G4int> geHCIDs;
     
- 
-    std::vector<G4float> e_dummy;
-    std::vector<G4float> x_dummy;
-    std::vector<G4float> y_dummy; 
-    std::vector<G4float> z_dummy;
+    //detector hit info
+    std::map<std::string, G4double> energyDepositions;
+    
+    //event info
+    std::vector<G4double> initEs; //set from primary generator
+    std::vector<G4double> initPxs;
+    std::vector<G4double> initPys;
+    std::vector<G4double> initPzs;
+    TH1D* hEPrimary; // histogram primary photons
+    TH3D* hPPrimary;
+        
+    std::vector<std::string> levels; //levels during the cascade
+    
+    unsigned long int nEvents;
+    
+   
     
     
 };

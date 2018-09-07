@@ -60,7 +60,7 @@ void NC2SteppingAction::UserSteppingAction(const G4Step* step)
 
   // collect energy deposited in this step
   G4double edepStep = step->GetTotalEnergyDeposit();
-  fEventAction->AddEdep(edepStep);  
+  //fEventAction->AddEdep(edepStep);  
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

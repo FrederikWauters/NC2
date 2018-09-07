@@ -51,6 +51,9 @@ class NC2DetectorConstruction : public G4VUserDetectorConstruction
     virtual G4VPhysicalVolume* Construct();
     
     void Print();
+    unsigned int NGeDetectors(){ return germanium_detectors.size(); };
+    std::vector<std::string> GetGeDetectorNames();
+    std::vector<GeDetector*>* GetGeDetectors() { return &germanium_detectors; };
 
   protected:
     
@@ -61,7 +64,7 @@ class NC2DetectorConstruction : public G4VUserDetectorConstruction
     
     //germanium detectors
     std::vector<GeDetector* > germanium_detectors;
-    ge_config_t ge2_conf,ge3_conf,ge4_conf,ge5_conf,ge6_conf,ge7_conf,ge8_conf;
+    ge_config_t ge1_conf,ge2_conf,ge3_conf,ge4_conf,ge5_conf,ge6_conf,ge7_conf,ge8_conf;
 
     //source
     G4double sourceThickness;
