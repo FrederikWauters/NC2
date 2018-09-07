@@ -65,7 +65,7 @@ GeDetector::GeDetector(G4LogicalVolume *vol,ge_config_t cf) : Detector(vol,cf.po
   G4Tubs* solidAbsorber = new G4Tubs("solidAbsorber",0.,config.diameter/2.,config.absorberThickness/2.,0.,2*M_PI);
   string logic_name_absorber = config.name;
   logic_name_absorber.append("_absorber_logic");
-  logic_absorber = new G4LogicalVolume(solidAbsorber,world_mat,logic_name_absorber);
+  logic_absorber = new G4LogicalVolume(solidAbsorber,cu_mat,logic_name_absorber);
   
 } 
 

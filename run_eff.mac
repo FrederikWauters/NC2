@@ -1,0 +1,16 @@
+# Macro file for example NC2
+# 
+
+# Initialize kernel
+/run/initialize
+#
+/control/verbose 2
+/run/verbose 2
+/event/verbose 0
+/tracking/verbose 0
+
+/generator/print 
+#
+/run/beamOn 100000000
+
+
