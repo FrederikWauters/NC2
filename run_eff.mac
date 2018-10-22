@@ -11,6 +11,6 @@
 
 /generator/print 
 #
-/run/beamOn 100000000
+/run/beamOn 1000
 
 

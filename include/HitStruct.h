@@ -1,0 +1,25 @@
+#ifndef HitStruct_h
+#define HitStruct_h
+
+#ifdef __MAKECINT__
+#pragma link C++ class GeHit_t+;
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Hit struct to write to tree
+// from the G4 simulation
+//
+// FW, Sep 2018
+////////////////////////////////////////////////////////////////////////////////
+
+struct GeHit_t{
+  
+  double energy;
+  double time;
+
+};
+
+#endif
+
+

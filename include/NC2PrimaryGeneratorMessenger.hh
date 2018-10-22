@@ -34,6 +34,7 @@ class G4UIcmdWithoutParameter;
 class G4UIcmdWithAString;
 class G4UIcmdWithADoubleAndUnit;
 class G4UIcmdWithADouble;
+class G4UIcmdWithAnInteger;
 class G4UIcmdWithABool;
 class G4UIcmdWith3Vector;
 class G4UIcmdWith3VectorAndUnit;
@@ -64,6 +65,8 @@ class NC2PrimaryGeneratorMessenger: public G4UImessenger
     G4UIcmdWithADoubleAndUnit* energyCmd;
     G4UIcmdWithADouble* intensityCmd;*/
     G4UIcmdWithoutParameter* printCmd;
+    G4UIcmdWithABool*         decayCmd;
+    G4UIcmdWithAnInteger*		startLevelCmd;
 
 };
 

@@ -41,7 +41,7 @@ G4ThreadLocal G4Allocator<NC2GermaniumHit>* NC2GermaniumHitAllocator=0;
 
 
 NC2GermaniumHit::NC2GermaniumHit() 
-  :    G4VHit(),   fTrackID(-1),   fParentID(-1),   fEdep(0.),   fPos(G4ThreeVector()), fProcessType(-1), fE(0.)
+  :    G4VHit(),   fTrackID(-1),   fParentID(-1),   fEdep(0.),   fPos(G4ThreeVector()), fProcessType(-1), fE(0.), fTime(0.)
 {}
 
 
@@ -59,6 +59,7 @@ NC2GermaniumHit::NC2GermaniumHit(const NC2GermaniumHit& right)
   fPos       = right.fPos;
   fProcessType = right.fProcessType;
   fE = right.fE;
+  fTime = right.fTime;
 }
 
 
@@ -71,6 +72,7 @@ const NC2GermaniumHit& NC2GermaniumHit::operator=(const NC2GermaniumHit& right)
   fPos       = right.fPos;
   fProcessType = right.fProcessType;
   fE = right.fE;
+  fTime = right.fTime;
 
   return *this;
 }
@@ -110,6 +112,7 @@ void NC2GermaniumHit::Print()
      << "  Edep: "  << std::setw(5) << G4BestUnit(fEdep,"Energy")
      << "  Position: "  << std::setw(5) << G4BestUnit( fPos,"Length")
      << "  Energy: " << std::setw(5) << G4BestUnit (fE,"Energy")
+     << "  Time: " << std::setw(5) << G4BestUnit(fTime,"Time")
      << G4endl;
 }
 

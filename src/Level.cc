@@ -38,11 +38,14 @@ Level::~Level()
   levels.clear();
 } 
 
-void Level::SetTransition(Level* level, float p)
+void Level::SetTransition(Level* level, float p, G4double e)
 {
   if( std::find(levels.begin(),levels.end(),level) == levels.end() )
   {
-    transitions[level] = p;
+    transition_param_t param;
+    param.strength = p;
+    param.energy = e;
+    transitions[level] = param;
     levels.push_back( level );
     G4cout << " level " << level->GetName() << " added to " << name << " with address " << std::hex << level << G4endl;
   }
@@ -75,13 +78,15 @@ Level* Level::GetTransition(G4double* transition_energy)
     //G4cout << levels.at(0)->GetName() << G4endl;
   }*/
   
+  float total_strength = GetTotalStrength(); //sum of the entire transition strength of all daughter levels
+  
   while(!level_found)
   {
     G4int trial_a = int(trunc(G4UniformRand()*levels.size()));
     G4double trial_b = G4UniformRand();    
-    if( transitions[levels.at(trial_a)] > trial_b )
+    if( transitions[levels.at(trial_a)].strength > trial_b )
     {
-      *transition_energy = E - levels.at(trial_a)->GetEnergy();
+      *transition_energy = transitions[levels.at(trial_a)].energy;
       level_out =  levels.at(trial_a); 
       level_found = true;
     }
@@ -98,7 +103,7 @@ float Level::GetTotalStrength()
   float sum = 0.;
   for (const auto& x : transitions)
   {
-    sum += x.second;  
+    sum += x.second.strength;  
   }
   return sum;
 }

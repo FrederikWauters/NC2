@@ -101,13 +101,26 @@ G4ThreeVector ge8_pos(-92.412*mm, 63.811*mm, 9581.075*mm);
 
 G4ThreeVector origin(0*mm, 0*mm, 0*mm);
 G4ThreeVector ge1_pos(130*mm, 0*mm, 0*mm);
+G4ThreeVector ge2_pos(105.2*mm, 76.4*mm, 0*mm);
+G4ThreeVector ge3_pos(40.2*mm, 123.6*mm, 0*mm);
+G4ThreeVector ge4_pos(-40.2*mm, 123.6*mm, 0*mm);
+G4ThreeVector ge5_pos(-105.2*mm, 76.4*mm, 0*mm);
+G4ThreeVector ge6_pos(-130*mm, 0*mm, 0*mm);
+G4ThreeVector ge7_pos(-105.2*mm, -76.4*mm, 0*mm);
+G4ThreeVector ge8_pos(-40.2*mm, -123.6*mm, 0*mm);
+G4ThreeVector ge9_pos(40.2*mm, -123.6*mm, 0*mm);
+G4ThreeVector ge10_pos(105.2*mm, -76.4*mm, 0*mm);
+
+
+/*G4ThreeVector origin(0*mm, 0*mm, 0*mm);
+G4ThreeVector ge1_pos(130*mm, 0*mm, 0*mm);
 G4ThreeVector ge2_pos(91.9*mm, 91.9*mm, 0*mm);
 G4ThreeVector ge3_pos(0*mm, 130*mm, 0*mm);
 G4ThreeVector ge4_pos(-91.9*mm, 91.9*mm, 0*mm);
 G4ThreeVector ge5_pos(-130*mm, 0*mm, 0*mm);
 G4ThreeVector ge6_pos(-91.9*mm, -91.9*mm, 0*mm);
 G4ThreeVector ge7_pos(-130*mm, 0*mm, 0*mm);
-G4ThreeVector ge8_pos(91.9*mm, -91.9*mm, 0*mm);
+G4ThreeVector ge8_pos(91.9*mm, -91.9*mm, 0*mm);*/
 
                //name  //diameter  //length  //bore diam  //bore depth   <--- crystal
   ge1_conf = { "Ge1",  70*mm,      70.*mm,   11*mm,       55*mm,
@@ -149,6 +162,14 @@ G4ThreeVector ge8_pos(91.9*mm, -91.9*mm, 0*mm);
   ge8_conf.name = "Ge8";
   ge8_conf.pos = ge8_pos;
  
+  ge9_conf = ge1_conf;
+  ge9_conf.name = "Ge9";
+  ge9_conf.pos = ge9_pos;
+  
+  ge10_conf = ge1_conf;
+  ge10_conf.name = "Ge10";
+  ge10_conf.pos = ge10_pos;
+  
   //source
   sourceThickness = 0.7*mm;
   sourceDiameter = 35.0*mm;
@@ -215,6 +236,8 @@ G4VPhysicalVolume* NC2DetectorConstruction::Construct()
   GeDetector* Ge6 = new GeDetector(logicWorld,ge6_conf);    germanium_detectors.push_back(Ge6);
   GeDetector* Ge7 = new GeDetector(logicWorld,ge7_conf);    germanium_detectors.push_back(Ge7);
   GeDetector* Ge8 = new GeDetector(logicWorld,ge8_conf);    germanium_detectors.push_back(Ge8);
+  GeDetector* Ge9 = new GeDetector(logicWorld,ge9_conf);    germanium_detectors.push_back(Ge9);
+  GeDetector* Ge10 = new GeDetector(logicWorld,ge10_conf);    germanium_detectors.push_back(Ge10);
   
   G4bool visualize = true;
   for(auto &detector: germanium_detectors)

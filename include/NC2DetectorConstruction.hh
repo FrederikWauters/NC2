@@ -64,7 +64,7 @@ class NC2DetectorConstruction : public G4VUserDetectorConstruction
     
     //germanium detectors
     std::vector<GeDetector* > germanium_detectors;
-    ge_config_t ge1_conf,ge2_conf,ge3_conf,ge4_conf,ge5_conf,ge6_conf,ge7_conf,ge8_conf;
+    ge_config_t ge1_conf,ge2_conf,ge3_conf,ge4_conf,ge5_conf,ge6_conf,ge7_conf,ge8_conf,ge9_conf,ge10_conf;
 
     //source
     G4double sourceThickness;

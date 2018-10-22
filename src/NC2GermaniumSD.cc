@@ -133,6 +133,7 @@ G4bool NC2GermaniumSD::ProcessHits(G4Step* step, G4TouchableHistory*)
   newHit->SetEdep(step->GetTotalEnergyDeposit());
   newHit->SetPos(step->GetPostStepPoint()->GetPosition());
   newHit->SetEnergy(step->GetPreStepPoint()->GetKineticEnergy());
+  newHit->SetTime(step->GetTrack()->GetGlobalTime());
   
   // Add Hit
   fHitsCollection->insert( newHit );

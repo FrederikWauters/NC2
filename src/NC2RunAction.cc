@@ -31,6 +31,7 @@
 #include <string>
 #include <ctime>
 
+
 #include "NC2RunAction.hh"
 #include "NC2PrimaryGeneratorAction.hh"
 #include "NC2DetectorConstruction.hh"
@@ -106,7 +107,10 @@ void NC2RunAction::BeginOfRunAction(const G4Run*)
   tree->Branch("pyInits",eventAction->GetPyInits());
   tree->Branch("pzInits",eventAction->GetPzInits());
   tree->Branch("Levels",eventAction->GetLevels());
-  tree->Branch("Edeps",eventAction->GetEnergyDepositions());
+  tree->Branch("GeHitEnergies",eventAction->GetGermaniumEnergies());
+  tree->Branch("GeHitTimes",eventAction->GetGermaniumTimes());
+  tree->Branch("GeHitPileUp",eventAction->GetPileUpFlag());
+
   
   runTree = new TTree("RunTree","Simulation config");
 
@@ -124,8 +128,7 @@ void NC2RunAction::EndOfRunAction(const G4Run* run)
 {
   G4int nofEvents = run->GetNumberOfEvent();
   if (nofEvents == 0) return;
-  const NC2Run* b1Run = static_cast<const NC2Run*>(run);
-  
+
   const NC2EventAction* constEventAction = static_cast<const NC2EventAction*>(G4RunManager::GetRunManager()->GetUserEventAction());
   NC2EventAction* eventAction = const_cast<NC2EventAction*>(constEventAction);
   

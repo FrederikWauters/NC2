@@ -5,6 +5,12 @@
 #include "G4PhysicalConstants.hh"
 #include "globals.hh"
 #include <map>
+#include <string>
+
+struct transition_param_t{
+  G4double energy;
+  float strength;
+};
 
 class Level 
 {
@@ -20,8 +26,9 @@ class Level
     G4double  GetEnergy() { return E; };
     std::string GetName() {  return name; };
     
-    void SetTransition(Level* level, float p); //gets pointer of original levels defined
+    void SetTransition(Level* level, float p, G4double e); //gets pointer of original levels defined
     std::vector<Level*>* GetDaughterLevels() { return &levels; }
+    std::map<Level*,transition_param_t>* GetTransitions() { return &transitions; };
     float GetTotalStrength(); // adding all transition strengths
     
     unsigned int Get_n() { return n; }
@@ -41,7 +48,7 @@ class Level
     
     G4double E; //energy of level 
     
-    std::map<Level*,float> transitions; //radiative transitions with transition probabilities
+    std::map<Level*,transition_param_t> transitions; //radiative transitions with transition probabilities
     std::vector<Level*> levels; //handy to keep track of the levels available
 };
 

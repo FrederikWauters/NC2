@@ -61,8 +61,8 @@ TH2F* hE5p2sHas2s;
 // E with 4p2s coincidence versus coinc pair with 2s passage
 // E with 5p2s coincidence versus coinc pair with 2s passage
 
-static const int NDET = 8;
-std::string detectors[NDET] = {"Ge1","Ge2","Ge3","Ge4","Ge5","Ge6","Ge7","Ge8"};
+static const int NDET = 10;
+std::string detectors[NDET] = {"Ge1","Ge2","Ge3","Ge4","Ge5","Ge6","Ge7","Ge8","Ge9","Ge10"};
 
 std::map<std::string,double> create_map()
 {

@@ -35,7 +35,9 @@
 #include "globals.hh"
 #include "NC2RunAction.hh"
 
+
 #include <map>
+#include <utility>
 #include <TH1D.h>
 #include <TH3D.h>
 
@@ -51,18 +53,22 @@ class NC2EventAction : public G4UserEventAction
     virtual void BeginOfEventAction(const G4Event*);
     virtual void EndOfEventAction(const G4Event*);
 
-    void AddEdep(std::string detector, G4double value) { energyDepositions[detector] = value; };
+   
     void ClearInitEnergies() { initEs.clear(); };
     void ClearInitLevels() { levels.clear(); };
     void AddInitEnergy(G4double value) { initEs.push_back(value); };
     void AddLevel(std::string value) { levels.push_back(value); };
     
-    std::map<std::string, G4double>* GetEnergyDepositions() { return &energyDepositions; };
+    std::map<std::string, G4double>* GetGermaniumEnergies() { return &germaniumEnergy; };
+    std::map<std::string, G4double>* GetGermaniumTimes() { return &germaniumTime; };
+    //std::pair<G4int,G4int>* GetGermaniumHits() { return &test_pair; };
     std::vector<G4double>* GetEInits() {return &initEs; };
     std::vector<std::string>* GetLevels() { return &levels; };
     unsigned long int* GetNevents() { return &nEvents; };
-    TH1D GetPrimaryEnergyHistogram() { return *hEPrimary; }
-    TH3D GetPrimaryMomentumHistogram() { return *hPPrimary; }
+    TH1D GetPrimaryEnergyHistogram() { return *hEPrimary; };
+    TH3D GetPrimaryMomentumHistogram() { return *hPPrimary; };
+    
+    G4bool* GetPileUpFlag() { return &pileUpFlag; };
     
     std::vector<G4double>* GetPxInits() {return &initPxs; };
     std::vector<G4double>* GetPyInits() {return &initPys; };
@@ -72,8 +78,11 @@ class NC2EventAction : public G4UserEventAction
     void AddInitPy(G4double value) { initPys.push_back(value); };
     void AddInitPz(G4double value) { initPzs.push_back(value); };
     void ClearInitPs() { initPxs.clear(); initPys.clear(); initPzs.clear(); };
+    
 
   private:
+  
+    void AddGermaniumHit(std::string detector, G4double e, G4double t);
   
     NC2RunAction* runAction;
         
@@ -81,7 +90,11 @@ class NC2EventAction : public G4UserEventAction
     std::map<std::string, G4int> geHCIDs;
     
     //detector hit info
-    std::map<std::string, G4double> energyDepositions;
+    std::map<std::string, G4double > germaniumEnergy;
+    std::map<std::string, G4double > germaniumTime;
+    G4bool pileUpFlag;
+    
+    std::pair<G4int,G4int> test_pair;
     
     //event info
     std::vector<G4double> initEs; //set from primary generator

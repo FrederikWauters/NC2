@@ -71,6 +71,10 @@ class NC2PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     void SetLevels() ;
     
     void PrintLevels();
+    
+    void SetDecayFlag(G4bool value) {decayFlag = value;}; 
+    
+    void SetInitialN(G4int value) {initialN= value;};
   
   private:
   
@@ -79,6 +83,10 @@ class NC2PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     //int rand (void);
     
     G4ThreeVector SetRandomDirection(G4ParticleGun* gun);
+    G4double GetDecayTime();
+    
+    G4double GetMichelElectronEnergy();
+    G4double GetNeutronEnergy();
     
     Level* GetSeedLevel();
     Level* GetLevel(std::string name);
@@ -87,6 +95,11 @@ class NC2PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     NC2EventAction* eventAction;
     
     //source properties
+    
+    G4ParticleDefinition* xray;
+    G4ParticleDefinition* electron; 
+    G4ParticleDefinition* neutron; 
+    
     G4double cosThetaLow;
     G4double cosThetaHigh;
     
@@ -94,6 +107,13 @@ class NC2PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     Level* start_level;
     
     G4double defaultEnergy;
+    G4bool decayFlag;
+    
+    G4int initialN;
+    
+    G4double muon_lifetime;
+    G4double zinc_lifetime;
+    G4double muon_mass;
     
     //Energies en intensities
     

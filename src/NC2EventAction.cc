@@ -49,12 +49,17 @@ NC2EventAction::NC2EventAction(): G4UserEventAction()
 {
   //runAction = ra;
   geHCIDs.clear();
-  energyDepositions.clear();
+    germaniumEnergy.clear();
+  germaniumTime.clear();
+  pileUpFlag = false;
+  
   
   const NC2RunAction* constRunAction = static_cast<const NC2RunAction*>(G4RunManager::GetRunManager()->GetUserRunAction());
   runAction = const_cast<NC2RunAction* > (constRunAction);
   
   nEvents = 0;
+  
+  test_pair = std::make_pair(1,2);
   
   hEPrimary = new TH1D("hEPrimary","Primary photon energies for the entire MC run; Energy (keV)",10000,0,10000);
   hPPrimary = new TH3D("hPPrimary","Primart photon momentum for entire MC run; px;py;pz",200,-1,1,200,-1,1,200,-1,1);
@@ -89,8 +94,9 @@ void NC2EventAction::BeginOfEventAction(const G4Event*)
  
   //empty vector and maps
   //initEs.clear(); //called after prim event generator, so don`t clear here
-  energyDepositions.clear();
-
+  germaniumEnergy.clear();
+  germaniumTime.clear();
+  pileUpFlag = false;
 
 
 }
@@ -126,6 +132,9 @@ void NC2EventAction::EndOfEventAction(const G4Event* event)
     G4int n_hit = geHC->entries();
     
     G4double eDep = 0.;
+    G4double time = 0.;
+    G4double prevTime = 0.;
+    G4double eMax = 0.*MeV;
     for(int i=0; i<n_hit; i++)
     {
       NC2GermaniumHit* hit = (*geHC)[i];
@@ -134,12 +143,14 @@ void NC2EventAction::EndOfEventAction(const G4Event* event)
       if(trackID>0) //the first "hit" is not really a hit. Not sure if this is a general thing, so I check in the track number
       {
         eDep += hit->GetEdep();
-        fill = true;       
-      }
-      
+        fill = true;
+        if( ( (time-prevTime) > 100.*ns || (time-prevTime) < 100.*ns ) && hit->GetEdep() > 10.*keV ) pileUpFlag = true; //hard code pile-up flag for now, with minimum energy requirement
+        if( hit->GetEdep() > 10.*keV ) prevTime = time; 
+        if( hit->GetEdep() > eMax ) { eMax=hit->GetEdep();     time = hit->GetTime(); } //take time of highest eDep
+      }      
     }
     
-    energyDepositions[name] = eDep;
+    AddGermaniumHit(name,eDep,time);
   }  
   
   
@@ -163,9 +174,17 @@ void NC2EventAction::EndOfEventAction(const G4Event* event)
   }
 
   nEvents++;
-
+  return;
 }  
-   
+                   
+void NC2EventAction::AddGermaniumHit(std::string detector, G4double e, G4double t)
+{
+
+  germaniumEnergy[detector] = e;
+  germaniumTime[detector] = t;
+  
+  return;  
+} 
   
 
 

@@ -68,6 +68,7 @@ class NC2GermaniumHit : public G4VHit
     void SetEdep     (G4double value)   { fEdep = value; };
     void SetProcessType (G4int type) {fProcessType = type; };
     void SetEnergy (G4double value) { fE = value; };
+    void SetTime (G4double value) { fTime = value; };
 
     // Get methods
     G4int GetTrackID() const     { return fTrackID; };
@@ -76,6 +77,7 @@ class NC2GermaniumHit : public G4VHit
     G4ThreeVector GetPos() const { return fPos; };
     G4int GetProcessType() const { return fProcessType; };
     G4double GetEnergy() const { return fE; };
+    G4double GetTime() const { return fTime; };
 
   private:
 
@@ -85,6 +87,7 @@ class NC2GermaniumHit : public G4VHit
       G4ThreeVector fPos;
       G4int	    fProcessType;
       G4double      fE;
+      G4double      fTime;
 };
 
 
