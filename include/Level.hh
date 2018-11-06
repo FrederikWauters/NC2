@@ -8,8 +8,9 @@
 #include <string>
 
 struct transition_param_t{
-  G4double energy;
   float strength;
+  G4double energy;
+  float radiativeBR;
 };
 
 class Level 
@@ -26,7 +27,7 @@ class Level
     G4double  GetEnergy() { return E; };
     std::string GetName() {  return name; };
     
-    void SetTransition(Level* level, float p, G4double e); //gets pointer of original levels defined
+    void SetTransition(Level* level, float p, G4double e, float br); //gets pointer of original levels defined
     std::vector<Level*>* GetDaughterLevels() { return &levels; }
     std::map<Level*,transition_param_t>* GetTransitions() { return &transitions; };
     float GetTotalStrength(); // adding all transition strengths
@@ -35,7 +36,7 @@ class Level
     unsigned int Get_l() { return l; }
     float Get_j() { return j; }
     
-    Level* GetTransition(G4double* e); //returns next level
+    Level* GetTransition(G4double* e, G4bool* radiative); //returns next level
     
         
   private:

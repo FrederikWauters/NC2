@@ -48,11 +48,12 @@
 #include <math.h>
 
 
+
 //#include "G4UniformRand.hh"
 
 
 
-NC2PrimaryGeneratorAction::NC2PrimaryGeneratorAction(NC2EventAction* ea): G4VUserPrimaryGeneratorAction(),  fParticleGun(0), eventAction(ea)
+NC2PrimaryGeneratorAction::NC2PrimaryGeneratorAction(NC2EventAction* ea): G4VUserPrimaryGeneratorAction(),  fParticleGun(0), eventAction(ea), engine(random_device()), dis_0_1(0,1), dis_0_14(0,14)
 {
   G4int n_particle = 1;
   
@@ -70,18 +71,21 @@ NC2PrimaryGeneratorAction::NC2PrimaryGeneratorAction(NC2EventAction* ea): G4VUse
   G4ParticleTable* particleTable = G4ParticleTable::GetParticleTable();
   G4String particleName;
   xray  = particleTable->FindParticle(particleName="gamma");
-  electron  = particleTable->FindParticle(particleName="electron");
+  electron  = particleTable->FindParticle(particleName="e-");
   neutron  = particleTable->FindParticle(particleName="neutron");
   fParticleGun->SetParticleDefinition(xray);
   defaultEnergy = 1.*MeV; //default energy
-  initialN = 6;
+  initialN = 15;
   muon_lifetime = 2197.*ns;
   zinc_lifetime = 160.*ns;
   muon_mass = 105.65*MeV;
   levels.clear();
   SetLevels();
+  start_levels.clear();
   PrintLevels();
-  decayFlag = false;
+  decayFlag = true;
+  
+  l_names = Get_l_names();
   
 }
 
@@ -104,21 +108,29 @@ void NC2PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   //generate xrays
   
   fParticleGun->SetParticleDefinition(xray);
+
+  //clean truth info  
+  eventAction->ClearInitLevels();
+  eventAction->ClearPIDs();
+  eventAction->ClearInitEnergies();
+  eventAction->ClearInitPs();
   
   //Get Seed Level
   Level* level = GetSeedLevel();
   
   std::vector<G4double> energies;
   
-  eventAction->ClearInitLevels();
+
+  
   eventAction->AddLevel(level->GetName());
   
   while(level->Get_n() > 1)
   {
     G4double energy;
-    level = level->GetTransition(&energy);
+    G4bool is_radiative;
+    level = level->GetTransition(&energy,&is_radiative);
     eventAction->AddLevel(level->GetName());
-    energies.push_back(energy);
+    if(is_radiative) energies.push_back(energy);
   }
 
   eventAction->ClearInitEnergies();
@@ -130,34 +142,45 @@ void NC2PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
     SetRandomDirection(fParticleGun);
     fParticleGun->SetParticleEnergy(e);
     eventAction->AddInitEnergy(e); //save init energy in output file
+    eventAction->AddPID(1);
+    fParticleGun->SetParticleTime(0.*ns);
     fParticleGun->GeneratePrimaryVertex(anEvent);
   }
   
-  
+
   //generate michel decay or neutron emission
   if(decayFlag)
   {
     G4double energy;
     G4double decayTime = GetDecayTime();
-    G4double neutronBR = (1/zinc_lifetime - 1/muon_lifetime) / (1/muon_lifetime);
+    //G4cout << "decayTime " << decayTime << G4endl;
+    fParticleGun->SetParticleTime(decayTime*ns);
+    G4double neutronBR = ( 1/zinc_lifetime - 1/muon_lifetime) / (1/zinc_lifetime);
+    //G4cout << "neutronBR " <<  neutronBR << G4endl;
     if(G4UniformRand() < neutronBR)
     {
       fParticleGun->SetParticleDefinition(neutron);
-      energy = GetMichelElectronEnergy();
+      eventAction->AddPID(13);
+      energy = GetNeutronEnergy();
     }
     else
     {
       fParticleGun->SetParticleDefinition(electron);
-      energy = GetNeutronEnergy();
+      eventAction->AddPID(3);
+      energy = GetMichelElectronEnergy();
     }
-    
+    SetRandomDirection(fParticleGun);
+    fParticleGun->SetParticleEnergy(energy);
+    eventAction->AddInitEnergy(energy);
+    fParticleGun->GeneratePrimaryVertex(anEvent); 
+  
   }
   
   
 }
 
 
-void NC2PrimaryGeneratorAction::SetLevels() //hard coding for now, not super elegenant
+int NC2PrimaryGeneratorAction::SetLevels() //hard coding for now, not super elegenant
 {
 
   //levels can`t be a vector, as it will chance the address of the members when adding new ones
@@ -170,17 +193,34 @@ void NC2PrimaryGeneratorAction::SetLevels() //hard coding for now, not super ele
   // or a map should also work. see table in https://en.cppreference.com/w/cpp/container
   
   int nLevels = SetLevelsFromParser(&levels); //
+  return nLevels;
 
 }
 
 Level* NC2PrimaryGeneratorAction::GetSeedLevel()
 {
   //method 1: MC selection of a p level
-  int method = 1;
+  int method = 3;
   
   bool level_found = false;
 
   Level* level;
+  
+  //select start levels
+  if(start_levels.size() < 1)
+  {
+    start_strength = 0.;          
+    for(auto& x : levels)
+    {
+      Level* l = &(x.second);
+      if(l->Get_n() == initialN)
+      {
+        start_levels.push_back(l);
+        start_strength += l->GetTotalStrength();
+      }
+    }
+    printf("Start levels initialized\n");
+  }
   
   switch(method)
   {
@@ -190,7 +230,7 @@ Level* NC2PrimaryGeneratorAction::GetSeedLevel()
       {
         //select random level
         auto it = levels.begin();
-        std::advance(it, std::rand() % levels.size() );
+        std::advance(it, std::rand() % levels.size() ); //rand() is apparently not a great thing to use https://channel9.msdn.com/Events/GoingNative/2013/rand-Considered-Harmful
         level = &(it->second);
 
         if(level->Get_n() == initialN)
@@ -200,6 +240,90 @@ Level* NC2PrimaryGeneratorAction::GetSeedLevel()
           level_found = true;
         } 
       }
+      break;
+      
+    case 2:
+      
+      while(!level_found)
+      {
+        //select random level
+        G4int trial_a = int(trunc(G4UniformRand()*start_levels.size()));
+        level = start_levels.at(trial_a);
+        if(G4UniformRand()*start_strength < level->GetTotalStrength() ) level_found = true;
+      }
+      break;
+      
+    case 3:
+      //use 2l+1 distribution
+      //initialN;
+      while(!level_found)
+      {
+        bool l_found = false;
+        int l;
+        while(l_found !=true)
+        {
+          if(initialN <= 15)
+          {
+            int l_trial = dis_0_14(engine);
+            double trial = G4UniformRand()*(2*(initialN-1)+1);
+            if(l_trial < initialN-1 and trial < (2*l_trial+1) )
+            {
+              l = l_trial;
+              l_found = true;
+            }
+          }          
+          else
+          {
+            G4cout << "This method does not work for initial N = " << initialN << G4endl;
+            break;
+          }
+        }
+        
+        bool j_found = false;
+        std::string j;
+        
+        while(j_found != true)
+        {
+          if( l_found==0 )
+          {
+            j = "1/2";
+            j_found = true;
+            continue;            
+          }
+          
+          //chose sign
+          int delta_spin;
+          if(dis_0_1(engine) == 0) delta_spin = -1;
+            else delta_spin = +1;
+          
+          if(delta_spin == +1)
+          {
+            j = std::to_string(l+delta_spin) + "/2";
+            j_found = true;
+            continue;
+          }
+          float trial_j = float(l) + delta_spin*0.5;
+          float max_j = float(l) + 0.5;
+          if( G4UniformRand()*(2*max_j+1) < (2*trial_j+1) )
+          {
+            j_found = true;
+            j = std::to_string(l+delta_spin) + "/2";
+            continue;
+          }     
+        }
+        
+
+        std::string key = std::to_string(initialN) + l_names[l] + "_" + j;
+        
+        if(levels.find(key) != levels.end() )
+        {
+          level = &(levels[key]);
+          level_found = true;
+        } 
+        
+      }
+            
+      
       break;
       
     default: 
@@ -229,6 +353,8 @@ G4ThreeVector NC2PrimaryGeneratorAction::SetRandomDirection(G4ParticleGun* gun)
   eventAction->AddInitPz(pz);
   
   gun->SetParticleMomentumDirection(G4ThreeVector(px,py,pz));
+  
+  return G4ThreeVector(px,py,pz);
   
 }
     
@@ -264,7 +390,7 @@ G4double NC2PrimaryGeneratorAction::GetDecayTime()
   while(!found)
   {
     G4double randomTime = G4UniformRand()*5000.*ns; //choose random time 
-    G4double exponent = randomTime / zinc_lifetime;
+    G4double exponent = -randomTime / zinc_lifetime;
     double result = exp(exponent);
     if(G4UniformRand() < result) 
     {
@@ -291,9 +417,36 @@ G4double NC2PrimaryGeneratorAction::GetMichelElectronEnergy()
   return energy;
 }
 
+
 G4double NC2PrimaryGeneratorAction::GetNeutronEnergy()
 {
-  return 10.*MeV;
+  //taken from "The nuclear physics of muon capture", Measday and references therein
+  
+  double high_energy_fraction=0.1;
+  double theta = 1.;
+  double T = 8.;
+  double minE = 0.5;
+  double maxE = 15.;
+  
+  G4bool energy_found = false;
+  G4double energy;
+  
+  while(energy_found != true )
+  {
+    double e = minE + G4UniformRand()*(maxE-minE);
+    double trial_value = G4UniformRand();
+    
+    double y = pow(e,(5./11))*exp(-e/theta)+high_energy_fraction*exp(-e/T);
+    
+    if(y<1 && trial_value <y)
+    {
+      energy_found = true;
+      energy = e*MeV;
+    }
+    
+  }
+  
+  return energy;
 }
 
     

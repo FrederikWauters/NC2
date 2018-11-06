@@ -49,9 +49,9 @@ NC2EventAction::NC2EventAction(): G4UserEventAction()
 {
   //runAction = ra;
   geHCIDs.clear();
-    germaniumEnergy.clear();
+  germaniumEnergy.clear();
   germaniumTime.clear();
-  pileUpFlag = false;
+  pileUpFlag.clear();
   
   
   const NC2RunAction* constRunAction = static_cast<const NC2RunAction*>(G4RunManager::GetRunManager()->GetUserRunAction());
@@ -61,8 +61,8 @@ NC2EventAction::NC2EventAction(): G4UserEventAction()
   
   test_pair = std::make_pair(1,2);
   
-  hEPrimary = new TH1D("hEPrimary","Primary photon energies for the entire MC run; Energy (keV)",10000,0,10000);
-  hPPrimary = new TH3D("hPPrimary","Primart photon momentum for entire MC run; px;py;pz",200,-1,1,200,-1,1,200,-1,1);
+  hEPrimary = new TH2D("hEPrimary","Primary energies for the entire MC run; Energy (keV); pid",60000,0,60000,20,0.5,20.5);
+  hPPrimary = new TH3D("hPPrimary","Primart momentum for entire MC run; px;py;pz",200,-1,1,200,-1,1,200,-1,1);
   
 } 
 
@@ -96,7 +96,7 @@ void NC2EventAction::BeginOfEventAction(const G4Event*)
   //initEs.clear(); //called after prim event generator, so don`t clear here
   germaniumEnergy.clear();
   germaniumTime.clear();
-  pileUpFlag = false;
+  pileUpFlag.clear();
 
 
 }
@@ -133,6 +133,7 @@ void NC2EventAction::EndOfEventAction(const G4Event* event)
     
     G4double eDep = 0.;
     G4double time = 0.;
+    int pileUp = 0; 
     G4double prevTime = 0.;
     G4double eMax = 0.*MeV;
     for(int i=0; i<n_hit; i++)
@@ -144,13 +145,13 @@ void NC2EventAction::EndOfEventAction(const G4Event* event)
       {
         eDep += hit->GetEdep();
         fill = true;
-        if( ( (time-prevTime) > 100.*ns || (time-prevTime) < 100.*ns ) && hit->GetEdep() > 10.*keV ) pileUpFlag = true; //hard code pile-up flag for now, with minimum energy requirement
+        if( ( (time-prevTime) > 100.*ns || (time-prevTime) < 100.*ns ) && hit->GetEdep() > 10.*keV ) pileUp = 1; //hard code pile-up flag for now, with minimum energy requirement
         if( hit->GetEdep() > 10.*keV ) prevTime = time; 
         if( hit->GetEdep() > eMax ) { eMax=hit->GetEdep();     time = hit->GetTime(); } //take time of highest eDep
       }      
     }
     
-    AddGermaniumHit(name,eDep,time);
+    AddGermaniumHit(name,eDep,time,pileUp);
   }  
   
   
@@ -162,10 +163,18 @@ void NC2EventAction::EndOfEventAction(const G4Event* event)
     runAction->FillTree(); //don`t write event with no ge hits
   }
   
-  for(const auto &e: initEs )
+  if (initEs.size() == pids.size() )
   {
-    double e_keV = (double)e*1000.;
-    hEPrimary->Fill(e_keV);
+    for(unsigned int iParticle = 0; iParticle < initEs.size(); iParticle++ )
+    {
+      double e_keV = (double)initEs.at(iParticle)*1000.;
+      int pid = pids.at(iParticle);
+      hEPrimary->Fill(e_keV,pid);
+    }
+  }
+  else
+  {
+    G4cout << "ERROR: number initial energies and number of particles not consistent " << G4endl;
   }
   
   for(unsigned int iP = 0; iP < initPxs.size(); iP++)
@@ -177,11 +186,12 @@ void NC2EventAction::EndOfEventAction(const G4Event* event)
   return;
 }  
                    
-void NC2EventAction::AddGermaniumHit(std::string detector, G4double e, G4double t)
+void NC2EventAction::AddGermaniumHit(std::string detector, G4double e, G4double t, int pu)
 {
 
   germaniumEnergy[detector] = e;
   germaniumTime[detector] = t;
+  pileUpFlag[detector] = pu;
   
   return;  
 } 

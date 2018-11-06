@@ -41,6 +41,23 @@ n_filenames = {	15 : "64Zn_INTENS_N15.dat" ,
 		3 : "64Zn_INTENS_N3.dat" ,
 		2 : "64Zn_INTENS_N2.dat" }
 		
+n_filenames_full = {	15 : "64Zn_FULL_N15.dat" ,
+			14 : "64Zn_FULL_N14.dat" ,
+			13 : "64Zn_FULL_N13.dat" ,			
+			12 : "64Zn_FULL_N12.dat" ,
+			11 : "64Zn_FULL_N11.dat" ,
+			10 : "64Zn_FULL_N10.dat" ,
+			9 : "64Zn_FULL_N9.dat" ,
+			8 : "64Zn_FULL_N8.dat" ,
+			7 : "64Zn_FULL_N7.dat" ,
+			6 : "64Zn_FULL_N6.dat" ,
+			5 : "64Zn_FULL_N5.dat" ,
+			4 : "64Zn_FULL_N4.dat" ,
+			3 : "64Zn_FULL_N3.dat" ,
+			2 : "64Zn_FULL_N2.dat" }
+			
+			
+			
 energy_filename = "EnergyDiffZn64.dat.txt"
 
 l_names = {	0 : "s" ,
@@ -104,7 +121,8 @@ def get_transitions(lines):
   for line in lines:
     content = [x for x in line.split(' ') if len(x)>0 ]
     if content[0]=='11':
-      print content
+      #print content
+      pass
     n_i = int(content[0])
     l_i = int(content[1])
     j_i = Fraction( content[2] + "/2" )
@@ -125,6 +143,67 @@ def get_transitions(lines):
       transitions[level_i] = []
       transitions[level_i].append(transition)
   return transitions
+  
+  
+#get n,l -> n,l transitions with their radiative fraction
+def get_full_transitions(lines):
+  transitions={}
+  transition={}
+  key = (0,0)
+  for line in lines:
+    reply = re.search("(\d+),\s*(\d+)\s*-\s*(\d+),\s*(\d+)",line)
+    if reply:      
+      #new transition found, save the previous one, clear, and continue
+      if len(transition) > 0:
+        if key in transitions:
+          transitions[key].append(dict(transition))
+        else:
+          transitions[key] = []
+          transitions[key].append(dict(transition))
+        #if key[0] == 6 and key[1] == 0:
+        #  print "key when adding transition: " + str(key)
+        #  pprint.pprint(transition)
+        #  print "growing book keeping"
+        #  pprint.pprint(transitions)
+      
+      transition.clear() # transition is single pointer which I keep updating. so if I just append it to transitions, the content gets updated eacht time. " append(dict(transition)) " makes copy, read also https://codehabitude.com/2013/12/24/python-objects-mutable-vs-immutable/
+      
+      n_i = int(reply.group(1))
+      l_i = int(reply.group(2))
+      n_f = int(reply.group(3))
+      l_f = int(reply.group(4))
+      intensity = float(float(line.split()[-1]))
+      level_i = (n_i,l_i)
+      level_f = (n_f,l_f)
+      transition["intensity"] = intensity
+      transition["daughter"] = level_f
+      transition["radiative"] = 0.
+      key = level_i
+          
+    else: #assume this a line with radiative and Auger strengths
+      reply = re.findall("([A-Z0-9]-RT)\s+([^\s]*)\s+",line)
+      if len(reply) > 0:
+        for strength in reply:
+          transition["radiative"] = transition["radiative"] + float(strength[1])
+      else:
+        #print line + "   --> not used"
+        pass
+        
+
+  
+  #save last one    
+  if len(transition) > 0:
+    if key in transitions:
+      transitions[key].append(transition)
+    else:
+      transitions[key] = []
+      transitions[key].append(transition)
+  
+  
+  return transitions
+  
+  
+      
 
 # process input transition file
 def read_transition_file(n):
@@ -135,12 +214,22 @@ def read_transition_file(n):
   return content
 
 
+
 def read_energies_file():
   f = open(energy_filename,"r")
   content = f.readlines()
   content.pop(0)
-  content = [x.strip("\r\n").split("\t") for x in content  if float(x.strip("\r\n").split("\t")[-1]) > 0] #remove lines and return characters I don`t want
+  content = [x.strip("\r\n").split("\t") for x in content  if float(x.strip("\r\n").split("\t")[-1]) > 0] 
   return content
+
+
+
+def read_full_file(n):
+  f = open(n_filenames_full[n],"r")
+  content = f.readlines()
+  content = [x.strip("\r\n") for x in content if ( len(x.strip("\r\n")) > 1  and "***" not in x and "AUGER" not in x and "EKIN" not in  x)]
+  return content
+
 
 
 # process n level
@@ -149,6 +238,7 @@ def process_level(n,transition_energies):
   transitions = get_transitions(lines)
   if(n==2):
     pprint.pprint(transitions)
+
 
 
 #read transition energies from MUON code output
@@ -189,7 +279,7 @@ def write_level(level,daughters,f):
     #first reover pointer of level stored in map
     f.write('  daughter = &((*levels)["' + make_name(daughter["daughter"])[0] + '" ]) ;\n')
     #f.write('  '  + var_name + '.SetTransition(&' + make_name(daughter["daughter"])[1] + ',' + str(daughter["intensity"]) + ',' + str(daughter["energy"]) + '*keV);\n' )
-    f.write('  '  + var_name + '.SetTransition(daughter,' + str(daughter["intensity"]) + ',' + str(daughter["energy"]) + '*keV);\n' )
+    f.write('  '  + var_name + '.SetTransition(daughter,' + str(daughter["intensity"]) + ',' + str(daughter["energy"]) + '*keV, ' +str(daughter["radiativeBR"]) + ' );\n' )
   f.write('  (*levels)[' + var_name + '.GetName()] = ' + var_name + ';\n')
   f.write('  count++;\n')
   f.write("\n")
@@ -210,10 +300,15 @@ def implement_level(l_i,transitions,levels_done,f):
     levels_done.append(l_i)
     return
 
+
+
 # process n level
 def process_level(n,transition_energies):
+
+  #get transitions from radiative transition file
   lines = read_transition_file(n)
   transitions = get_transitions(lines)
+  
   #update the energies with the MUON code results
   for level_i in transitions:
     #print level_i
@@ -230,6 +325,40 @@ def process_level(n,transition_energies):
   if(n==2):
     pprint.pprint(transitions)
   
+  #get radiative fraction from ni,li -> nf,lf file
+  lines =  read_full_file(n)
+  if(n==6):
+    #pprint.pprint(lines)
+    pass
+  
+  full_transitions = get_full_transitions(lines)
+  if(n==2):
+    pprint.pprint(full_transitions)
+    pass
+  
+  #add radiative BR to transition
+  for level_i in transitions:
+    level_i_short = level_i[0:2]
+    if level_i_short in full_transitions:
+      for transition in transitions[level_i]:
+        level_f_short = transition["daughter"][0:2]
+        #now look for the radiative BR
+        br = 1.
+        for full_transition in full_transitions[level_i_short]:
+          if(level_f_short == full_transition["daughter"]):
+            br = full_transition["radiative"]/full_transition["intensity"]
+            break
+        transition["radiativeBR"] = br
+        transition["intensity"] = transition["intensity"]/br
+        if transition["intensity"] > 1.:
+          transition["intensity"] = 1.       
+    else:
+      print str(level_i_short) + " initial level not found in full transition list"
+      
+  if(n==2):
+    pprint.pprint(transitions)
+
+  
   #sanity check
   total = 0.
   total2 = 0.
@@ -243,6 +372,10 @@ def process_level(n,transition_energies):
   print "Total transition rate from n=" + str(n) + " = " + str(total2) + " ignoring n->n transitions"
   
   return transitions
+  
+  
+  
+  
     
 # 
 # Main function
@@ -308,11 +441,20 @@ def main():
   else:
     print str(len(transitions)-len(levels_implemented)) + " levels are not writtn to output file"
   
-  
-  
-  #close output  
   fout.write("  return count;\n")
   fout.write("}\n")
+  
+  #write the l to names key
+  fout.write("\n")
+  fout.write("std::map<int,std::string> Get_l_names() { \n")
+  fout.write("  std::map<int,std::string> my_map; \n")
+  for key,value in l_names.iteritems():
+    fout.write('  my_map[' + str(key) + '] = "' + value + '" ;\n' )
+  fout.write("return my_map;\n");
+  fout.write("}\n")
+    
+  
+  #close output  
   fout.close()
 
 if __name__ == "__main__":

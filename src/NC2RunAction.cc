@@ -103,20 +103,23 @@ void NC2RunAction::BeginOfRunAction(const G4Run*)
   
   //tree->Branch("test",&test_value,"test/I");
   tree->Branch("EInits",eventAction->GetEInits());
+  tree->Branch("PIDs",eventAction->GetPIDs());
   tree->Branch("pxInits",eventAction->GetPxInits());
   tree->Branch("pyInits",eventAction->GetPyInits());
   tree->Branch("pzInits",eventAction->GetPzInits());
   tree->Branch("Levels",eventAction->GetLevels());
   tree->Branch("GeHitEnergies",eventAction->GetGermaniumEnergies());
   tree->Branch("GeHitTimes",eventAction->GetGermaniumTimes());
-  tree->Branch("GeHitPileUp",eventAction->GetPileUpFlag());
+  tree->Branch("GeHitPileUp",eventAction->GetPileUpFlag()); 
 
   
   runTree = new TTree("RunTree","Simulation config");
 
   runTree->Branch("nEvents",eventAction->GetNevents(),"nEvents/l");
-  
-  hEPrimary = new TH1D();
+  //runTree->Branch("decay",eventAction->GetDecayFlag(),"decay/B");
+  // need to add more settings
+
+  hEPrimary = new TH2D();
   
   hPPrimary = new TH3D();
 

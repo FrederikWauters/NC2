@@ -73,7 +73,7 @@ class NC2RunAction : public G4UserRunAction
   
     TFile *treeFile;
     TTree *tree;
-    TH1D *hEPrimary;
+    TH2D *hEPrimary;
     TH3D *hPPrimary;
     TTree *runTree;
     int test_value;

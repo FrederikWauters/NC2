@@ -66,6 +66,7 @@ file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh)
 #
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 
 #----------------------------------------------------------------------------
 # Add the executable, and link it to the Geant4 libraries

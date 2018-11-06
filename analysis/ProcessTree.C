@@ -29,6 +29,9 @@ static double resolution=3; //FWHM, in keV
 
 static double bgoNPhotElectrons_keV = 8200*0.1*0.001; //Literature light yield * photo-electron efficiency * MeV->keV  
 
+static double timeResolution = 8.; //sigma time resolution
+
+
 TFile* infile;
 TFile* outfile;
 TTree* tree;
@@ -37,7 +40,11 @@ TTree* runTree;
 TH2F* hEdep;
 TH2F* hEdep2s;
 TH2F* hEdep2s1s;
+TH2F* hEdepNeutron;
+TH2F* hEdepMichel;
 TH1D* hEInit;
+
+TH2F* hEdepVsTime;
 
 TH2F* hE3p2s;
 TH2F* hE4p2s;
@@ -90,12 +97,23 @@ void LoopTree(int maxEvents = -1)
   //set variables  
 
   std::map<std::string, double>* energyDepositions = new std::map<std::string, double>();
+  std::map<std::string, double>* hitTimes = new std::map<std::string, double>();
+  std::map<std::string, int>* pileup = new std::map<std::string, int>();
   std::vector<double>* initEs = new std::vector<double>(); //set from primary generator
   std::vector<std::string>* levels = new std::vector<std::string>();
-      
-  tree->SetBranchAddress("Edeps",&energyDepositions);
+  std::vector<int>* pids = new std::vector<int>();
+
+  
   tree->SetBranchAddress("EInits",&initEs);
+  tree->SetBranchAddress("PIDs",&pids);
+  //tree->SetBranchAddress("pxInits",eventAction->GetPxInits());
+  //tree->SetBranchAddress("pyInits",eventAction->GetPyInits());
+  //tree->SetBranchAddress("pzInits",eventAction->GetPzInits());
   tree->SetBranchAddress("Levels",&levels);
+  tree->SetBranchAddress("GeHitEnergies",&energyDepositions);
+  tree->SetBranchAddress("GeHitTimes",&hitTimes);
+  //tree->SetBranchAddress("GeHitPileUp",&pileup);
+
   
   //record time
   TStopwatch timer;
@@ -126,16 +144,17 @@ void LoopTree(int maxEvents = -1)
     bool has_2s1s = false;
 
     
-    if ( std::find(levels->begin(), levels->end(), "2s") != levels->end() ) 
+    if ( std::find(levels->begin(), levels->end(), "2s_1/2") != levels->end() ) 
     {
       has_2s = true;
-      /*if( std::find(levels->begin(), levels->end(), "2p_1/2") == levels->end() && std::find(levels->begin(), levels->end(), "2p_3/2") == levels->end() )
+      if( std::find(levels->begin(), levels->end(), "2p_1/2") == levels->end() && std::find(levels->begin(), levels->end(), "2p_3/2") == levels->end() )
       {
         has_2s1s = true;
-      }*/
+        if(DEBUG) std::cout << "2s1s transition" << std::endl;
+      }
     }
     
-    for(unsigned int j = 0; j < initEs->size(); j++ )
+    /*for(unsigned int j = 0; j < initEs->size(); j++ )
     {
       if( initEs->at(j)*1000. > 1630 && initEs->at(j)*1000. < 1650)
       {
@@ -150,7 +169,7 @@ void LoopTree(int maxEvents = -1)
           if(DEBUG) std::cout << "  Initial energy " << iI << " : " << initEs->at(iI)*1000. << std::endl;
         }
       }
-    }
+    }*/
     
     
         
@@ -168,27 +187,39 @@ void LoopTree(int maxEvents = -1)
       {
         energyDepositions->at(detectors[j]) = random_gen->Gaus(energyDepositions->at(detectors[j])*1000.,resolution/2.35);
       }
+      
+      if(hitTimes->at(detectors[j]) > 0)
+      {
+        hitTimes->at(detectors[j]) = random_gen->Gaus(hitTimes->at(detectors[j]),timeResolution);
+      }
     }
     
     //free running E spectra
     for( unsigned int j = 0; j < NDET; j ++)
     {
     
-      double energy = energyDepositions->at(detectors[j]); 
+      double energy = energyDepositions->at(detectors[j]);
+      double time =  hitTimes->at(detectors[j]);
+      
+      //int pp = pileup->at(detectors[j]); //pile up flag
+      //if(pp != 0) continue;
+      
       if(energy>0.)
       {
         hEdep->Fill(energy,j+1);
+        hEdepVsTime->Fill(energy,time);
         if(has_2s)hEdep2s->Fill(energy,j+1);
         if(has_2s1s) { hEdep2s1s->Fill(energy,j+1); }
       }
       
       //look for coincidences
-      if( energy > transition_energies["3p2s"]-1.5*resolution && energy < transition_energies["3p2s"]+1.5*resolution  )
+      if( energy > transition_energies["3p2s"]-1.5*resolution && energy < transition_energies["3p2s"]+1.5*resolution && time > 0.-3*timeResolution && time < 0.+2*timeResolution )
       {
         for( unsigned int iDet = 0; iDet < NDET; iDet++ )
         {
           double coinc_energy = energyDepositions->at(detectors[iDet]);
-          if( iDet != j && coinc_energy > 10. )
+          double coinc_time = hitTimes->at(detectors[iDet]);
+          if( iDet != j && coinc_energy > 10. && coinc_time > 0.-3*timeResolution && coinc_time < 0.+2*timeResolution )
           {
             unsigned int diff = std::min(abs(j-iDet),NDET-abs(j-iDet));
             hE3p2s->Fill(coinc_energy,diff);
@@ -196,12 +227,14 @@ void LoopTree(int maxEvents = -1)
           }
         }
       }
-      if( energy > transition_energies["4p2s"]-1.5*resolution && energy < transition_energies["4p2s"]+1.5*resolution  )
+      
+      if( energy > transition_energies["4p2s"]-1.5*resolution && energy < transition_energies["4p2s"]+1.5*resolution  && time > 0.-3*timeResolution &&  time < 0.+2*timeResolution )
       {
         for( unsigned int iDet = 0; iDet < NDET; iDet++ )
         {
           double coinc_energy = energyDepositions->at(detectors[iDet]);
-          if( iDet != j && coinc_energy > 10. )
+          double coinc_time = hitTimes->at(detectors[iDet]);
+          if( iDet != j && coinc_energy > 10. && coinc_time > 0.-3*timeResolution && coinc_time < 0.+2*timeResolution )
           {
             unsigned int diff = std::min(abs(j-iDet),NDET-abs(j-iDet));
             hE4p2s->Fill(coinc_energy,diff);
@@ -209,12 +242,14 @@ void LoopTree(int maxEvents = -1)
           }
         }
       }
-      if( energy > transition_energies["5p2s"]-1.5*resolution && energy < transition_energies["5p2s"]+1.5*resolution  )
+      
+      if( energy > transition_energies["5p2s"]-1.5*resolution && energy < transition_energies["5p2s"]+1.5*resolution  && time > 0.-3*timeResolution &&  time < 0.+2*timeResolution )
       {
         for( unsigned int iDet = 0; iDet < NDET; iDet++ )
         {
           double coinc_energy = energyDepositions->at(detectors[iDet]);
-          if( iDet != j && coinc_energy > 10. )
+          double coinc_time = hitTimes->at(detectors[iDet]);
+          if( iDet != j && coinc_energy > 10. && coinc_time > 0.-3*timeResolution && coinc_time < 0.+2*timeResolution )
           {
             unsigned int diff = std::min(abs(j-iDet),NDET-abs(j-iDet));
             hE5p2s->Fill(coinc_energy,diff);
@@ -243,6 +278,7 @@ void InitHistograms()
   hEdep2s = new TH2F("hEdep2s","Energy deposition, cascade passing through 2s; Energy (keV); Detector",4000,0,4000,NDET,0.5,NDET+0.5);
   hEdep2s1s = new TH2F("hEdep2s1s","Energy deposition, 2s1s transition; Energy (keV); Detector",4000,0,4000,NDET,0.5,NDET+0.5);
   
+  hEdepVsTime = new TH2F("hEdepVsTime", "Energy deposition versus Time (keV) ; Energy (keV); Time (ns)", 4000, 0 ,4000, 1000 ,-1000,4000);  
   
   for(unsigned int iDet = 0; iDet < NDET; iDet++)
   {

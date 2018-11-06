@@ -39,6 +39,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <random>
 	
 
 class G4ParticleGun;
@@ -68,13 +69,15 @@ class NC2PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     std::vector<G4double> GetCascade(); //energies for cascade    
 
 
-    void SetLevels() ;
+    int SetLevels() ;
     
     void PrintLevels();
     
     void SetDecayFlag(G4bool value) {decayFlag = value;}; 
     
     void SetInitialN(G4int value) {initialN= value;};
+    
+
   
   private:
   
@@ -104,7 +107,8 @@ class NC2PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     G4double cosThetaHigh;
     
     std::map< std::string, Level > levels;
-    Level* start_level;
+    std::vector<Level*> start_levels;
+    G4double start_strength;
     
     G4double defaultEnergy;
     G4bool decayFlag;
@@ -114,6 +118,15 @@ class NC2PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     G4double muon_lifetime;
     G4double zinc_lifetime;
     G4double muon_mass;
+    
+      //random device when G4UniformRand doesn't do the job
+    // https://en.cppreference.com/w/cpp/numeric/random/uniform_int_distribution
+    std::random_device random_device;
+    std::mt19937 engine;
+    std::uniform_int_distribution<> dis_0_1;
+    std::uniform_int_distribution<> dis_0_14;
+    
+    std::map<int,std::string> l_names;
     
     //Energies en intensities
     

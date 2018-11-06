@@ -9,8 +9,7 @@
 /event/verbose 0
 /tracking/verbose 0
 
+/generator/decay 0
 /generator/print 
 #
-/run/beamOn 1000
-
-
+/run/beamOn 500

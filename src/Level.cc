@@ -3,6 +3,7 @@
 #include <algorithm>
 
 
+
 #include "Level.hh"
 #include "Randomize.hh"
 
@@ -38,13 +39,14 @@ Level::~Level()
   levels.clear();
 } 
 
-void Level::SetTransition(Level* level, float p, G4double e)
+void Level::SetTransition(Level* level, float p, G4double e,float br)
 {
   if( std::find(levels.begin(),levels.end(),level) == levels.end() )
   {
     transition_param_t param;
     param.strength = p;
     param.energy = e;
+    param.radiativeBR = br;
     transitions[level] = param;
     levels.push_back( level );
     G4cout << " level " << level->GetName() << " added to " << name << " with address " << std::hex << level << G4endl;
@@ -60,7 +62,7 @@ void Level::SetTransition(Level* level, float p, G4double e)
 
 }
 
-Level* Level::GetTransition(G4double* transition_energy)
+Level* Level::GetTransition(G4double* transition_energy, G4bool* radiative)
 {
   bool level_found = false;
   if(levels.size() < 1 )
@@ -73,7 +75,7 @@ Level* Level::GetTransition(G4double* transition_energy)
   
   //G4cout << " At level " << name << G4endl;
   //G4cout << "Levels available: " << levels.size() << G4endl;
- /* for(const auto &x : levels)
+ /* for(const auto &x : levels)cat run	
   {
     //G4cout << levels.at(0)->GetName() << G4endl;
   }*/
@@ -83,12 +85,14 @@ Level* Level::GetTransition(G4double* transition_energy)
   while(!level_found)
   {
     G4int trial_a = int(trunc(G4UniformRand()*levels.size()));
-    G4double trial_b = G4UniformRand();    
+    G4double trial_b = G4UniformRand()*total_strength;     
     if( transitions[levels.at(trial_a)].strength > trial_b )
     {
       *transition_energy = transitions[levels.at(trial_a)].energy;
       level_out =  levels.at(trial_a); 
       level_found = true;
+      if( G4UniformRand() < transitions[levels.at(trial_a)].radiativeBR ) *radiative = true;
+        else *radiative = false;
     }
   }
   

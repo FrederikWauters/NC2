@@ -39,6 +39,7 @@
 #include <map>
 #include <utility>
 #include <TH1D.h>
+#include <TH2D.h>
 #include <TH3D.h>
 
 /// Event action class
@@ -56,19 +57,22 @@ class NC2EventAction : public G4UserEventAction
    
     void ClearInitEnergies() { initEs.clear(); };
     void ClearInitLevels() { levels.clear(); };
+    void ClearPIDs() { pids.clear(); };
     void AddInitEnergy(G4double value) { initEs.push_back(value); };
     void AddLevel(std::string value) { levels.push_back(value); };
+    void AddPID(G4int value) { pids.push_back(value); };
     
     std::map<std::string, G4double>* GetGermaniumEnergies() { return &germaniumEnergy; };
     std::map<std::string, G4double>* GetGermaniumTimes() { return &germaniumTime; };
     //std::pair<G4int,G4int>* GetGermaniumHits() { return &test_pair; };
     std::vector<G4double>* GetEInits() {return &initEs; };
     std::vector<std::string>* GetLevels() { return &levels; };
+    std::vector<G4int>* GetPIDs() { return &pids; };
     unsigned long int* GetNevents() { return &nEvents; };
-    TH1D GetPrimaryEnergyHistogram() { return *hEPrimary; };
+    TH2D GetPrimaryEnergyHistogram() { return *hEPrimary; };
     TH3D GetPrimaryMomentumHistogram() { return *hPPrimary; };
     
-    G4bool* GetPileUpFlag() { return &pileUpFlag; };
+    std::map<std::string,int>* GetPileUpFlag() { return &pileUpFlag; };
     
     std::vector<G4double>* GetPxInits() {return &initPxs; };
     std::vector<G4double>* GetPyInits() {return &initPys; };
@@ -82,7 +86,7 @@ class NC2EventAction : public G4UserEventAction
 
   private:
   
-    void AddGermaniumHit(std::string detector, G4double e, G4double t);
+    void AddGermaniumHit(std::string detector, G4double e, G4double t, int pu);
   
     NC2RunAction* runAction;
         
@@ -92,7 +96,8 @@ class NC2EventAction : public G4UserEventAction
     //detector hit info
     std::map<std::string, G4double > germaniumEnergy;
     std::map<std::string, G4double > germaniumTime;
-    G4bool pileUpFlag;
+    std::map<std::string,  int > pileUpFlag; //ROOT doesn`t seem to like a bool
+
     
     std::pair<G4int,G4int> test_pair;
     
@@ -101,10 +106,12 @@ class NC2EventAction : public G4UserEventAction
     std::vector<G4double> initPxs;
     std::vector<G4double> initPys;
     std::vector<G4double> initPzs;
-    TH1D* hEPrimary; // histogram primary photons
+    TH2D* hEPrimary; // histogram primary photons
     TH3D* hPPrimary;
         
     std::vector<std::string> levels; //levels during the cascade
+    
+    std::vector<G4int> pids; // 
     
     unsigned long int nEvents;
     
